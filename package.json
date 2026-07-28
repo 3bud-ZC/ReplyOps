@@ -21,7 +21,7 @@
   "dependencies": {
     "@emnapi/core": "1.11.3",
     "@emnapi/runtime": "1.11.3",
-    "@emnapi/wasi-threads": "1.2.3",
+    "@emnapi/wasi-threads": "2.0.1",
     "@google/genai": "^2.13.0",
     "@prisma/adapter-pg": "7.9.1",
     "@prisma/client": "7.9.1",
