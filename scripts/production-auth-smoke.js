@@ -18,58 +18,69 @@ function cookieHeader(headers) {
 async function main() {
   const vars = loadEnv(process.argv[2] || "/var/www/replyops/shared/.env");
   const email = vars.REPLYOPS_OWNER_EMAIL || "abudfun@gmail.com";
-  const passwordName = vars.REPLYOPS_OWNER_CURRENT_PASSWORD
-    ? "REPLYOPS_OWNER_CURRENT_PASSWORD"
-    : vars.REPLYOPS_OWNER_BOOTSTRAP_PASSWORD
-    ? "REPLYOPS_OWNER_BOOTSTRAP_PASSWORD"
-    : Object.keys(vars).find((key) => /ADMIN|OWNER|INITIAL/i.test(key) && /PASSWORD/i.test(key));
-  const password = passwordName ? vars[passwordName] : "";
+  const passwordNames = [
+    "REPLYOPS_OWNER_BOOTSTRAP_PASSWORD",
+    "REPLYOPS_OWNER_CURRENT_PASSWORD",
+    ...Object.keys(vars).filter((key) => /ADMIN|OWNER|INITIAL/i.test(key) && /PASSWORD/i.test(key)),
+  ].filter((value, index, list) => vars[value] && list.indexOf(value) === index);
 
-  if (!password) {
+  if (!passwordNames.length) {
     console.log("AUTH_OWNER_PASSWORD=missing");
     return;
   }
 
   const base = "https://replyops.abud.fun";
-  const csrfRes = await fetch(`${base}/api/auth/csrf`);
-  const csrfCookie = cookieHeader(csrfRes.headers);
-  const csrfJson = await csrfRes.json();
+  let loginRes = null;
+  let acceptedPasswordName = "";
+  for (const passwordName of passwordNames) {
+    const csrfRes = await fetch(`${base}/api/auth/csrf`);
+    const csrfCookie = cookieHeader(csrfRes.headers);
+    const csrfJson = await csrfRes.json();
+    const body = new URLSearchParams({
+      csrfToken: csrfJson.csrfToken,
+      email,
+      password: vars[passwordName],
+      json: "true",
+    });
 
-  const body = new URLSearchParams({
-    csrfToken: csrfJson.csrfToken,
-    email,
-    password,
-    json: "true",
-  });
+    loginRes = await fetch(`${base}/api/auth/callback/credentials`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        cookie: csrfCookie,
+      },
+      body,
+      redirect: "manual",
+    });
 
-  const loginRes = await fetch(`${base}/api/auth/callback/credentials`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/x-www-form-urlencoded",
-      cookie: csrfCookie,
-    },
-    body,
-    redirect: "manual",
-  });
+    if (loginRes.status !== 401) {
+      acceptedPasswordName = passwordName;
+      break;
+    }
+  }
 
-  const cookies = loginRes.headers.get("set-cookie") || "";
-  console.log(`AUTH_LOGIN_STATUS=${loginRes.status}`);
+  const cookies = loginRes?.headers.get("set-cookie") || "";
+  console.log(`AUTH_LOGIN_STATUS=${loginRes?.status ?? 0}`);
+  console.log(`AUTH_ACCEPTED_PASSWORD_VAR=${acceptedPasswordName || "none"}`);
   console.log(`AUTH_SESSION_COOKIE=${/next-auth\.session-token|__Secure-next-auth\.session-token/.test(cookies)}`);
   console.log(`AUTH_HTTPONLY=${/HttpOnly/i.test(cookies)}`);
   console.log(`AUTH_SAMESITE=${/SameSite=Lax|SameSite=Strict/i.test(cookies)}`);
   console.log(`AUTH_SECURE_COOKIE=${/Secure/i.test(cookies)}`);
 
+  const invalidCsrfRes = await fetch(`${base}/api/auth/csrf`);
+  const invalidCsrfCookie = cookieHeader(invalidCsrfRes.headers);
+  const invalidCsrfJson = await invalidCsrfRes.json();
   const invalidBody = new URLSearchParams({
-    csrfToken: csrfJson.csrfToken,
+    csrfToken: invalidCsrfJson.csrfToken,
     email,
-    password: `${password}-invalid`,
+    password: `${vars[passwordNames[0]]}-invalid`,
     json: "true",
   });
   const invalidRes = await fetch(`${base}/api/auth/callback/credentials`, {
     method: "POST",
     headers: {
       "content-type": "application/x-www-form-urlencoded",
-      cookie: csrfCookie,
+      cookie: invalidCsrfCookie,
     },
     body: invalidBody,
     redirect: "manual",
