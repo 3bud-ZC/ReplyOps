@@ -104,7 +104,8 @@ Production release `/var/www/replyops/releases/20260728T152053Z`:
 - WhatsApp provider-live acceptance remains blocked by Meta credentials.
 - Full embedded Web Chat visual acceptance remains open.
 - Full n8n v4 execution matrix remains open beyond invalid-envelope smoke and source contract tests.
-- GitHub CI status, tag, release, and Notion documentation are pending until publication completes.
+- GitHub CI uses `prisma db push --skip-generate` against an ephemeral service database because the legacy `initial_schema_sync` migration folder sorts after additive migrations on fresh databases. Production migration history is applied and up to date; clean-install migration rebaselining remains a packaging task.
+- Notion documentation was not updated in this session.
 
 ## Safe Rollback
 
