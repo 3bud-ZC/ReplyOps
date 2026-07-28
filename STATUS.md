@@ -1,10 +1,10 @@
 # ReplyOps Production Status
 
-Updated: 2026-07-28 19:19 Africa/Cairo
+Updated: 2026-07-28 19:51 Africa/Cairo
 
 ## Completion
 
-- Overall completion: 95%
+- Overall completion: 96%
 - Internal software completion: 98%
 - External provider live acceptance: 60%
 - Dashboard: 99%
@@ -26,22 +26,23 @@ Percentages are not 100%. Remaining gaps are full authenticated visual QA matrix
 
 - Dashboard: `https://replyops.abud.fun`
 - n8n: `https://botn8n.abud.fun`
-- Active release: `/var/www/replyops/releases/20260728T152053Z`
-- Previous release: `/var/www/replyops/releases/20260728T151302Z`
-- Latest restricted backup: `/root/backups/replyops-20260728T151022Z`
-- Deployed source commit: `f67c3d1`
+- Active release: `/var/www/replyops/releases/20260728T164805Z`
+- Previous release: `/var/www/replyops/releases/20260728T163943Z`
+- Pre-run stable release: `/var/www/replyops/releases/20260728T152053Z`
+- Latest restricted backup: `/root/backups/replyops-20260728T164743Z`
+- Deployed source commit: `f30b36a36749`
 - GitHub repository: `https://github.com/3bud-ZC/ReplyOps`
 - Final branch: `main`
-- Final branch commit: `859f765e7b62`
+- Latest verified code commit: `f30b36a36749`
 - Git tag: `v0.1.0` at `2c8b84e96cd3`
 - GitHub Release: `https://github.com/3bud-ZC/ReplyOps/releases/tag/v0.1.0`
-- GitHub CI: passed on run `30374131467`
+- GitHub CI: passed on run `30379732631`
 - PM2 process: `replyops`, online on port `3111`
 - Port `3110`: still owned by `flyrank-ai`
 - Spare precheck port `3112`: stopped after validation
 - PostgreSQL: accepting on local port `5433`
 - n8n: restarted and recovered to HTTPS `200`
-- Prisma migrations: 8 applied, schema up to date
+- Prisma migrations: production legacy path has 8 applied, schema up to date; clean public path passes on empty pgvector DB
 
 ## Completed In This Run
 
@@ -59,6 +60,10 @@ Percentages are not 100%. Remaining gaps are full authenticated visual QA matrix
 - Preserved existing production migration history with `prisma.production.config.ts`; immutable deploys now run `prisma migrate deploy/status --config prisma.production.config.ts`.
 - Replaced the source-only E2E route contract with real Playwright Chromium auth E2E: owner bootstrap into a disposable database, browser login, and `#dashboard-content` assertion.
 - Localized auth screens and the dashboard overview path through the shared Arabic/English dictionary, including RTL/LTR document attributes.
+- Published commit `f30b36a36749` to `main` and verified GitHub CI run `30379732631` passed all gates including clean migrations and Playwright E2E.
+- Created restricted backup `/root/backups/replyops-20260728T164743Z`.
+- Deployed immutable release `/var/www/replyops/releases/20260728T164805Z` after production gates passed and switched PM2 to it.
+- Restored the owner credential from `REPLYOPS_OWNER_CURRENT_PASSWORD` after an earlier deploy-candidate E2E attempt used a test bootstrap path against production; post-restore auth smoke accepted `REPLYOPS_OWNER_CURRENT_PASSWORD`.
 
 ## Verified Checks
 
@@ -100,6 +105,28 @@ Production release `/var/www/replyops/releases/20260728T152053Z`:
 - n8n invalid envelope: `400 invalid_payload` with expected missing fields
 - PM2: `replyops` online; unrelated `flyrank-ai` online and untouched
 
+Production release `/var/www/replyops/releases/20260728T164805Z`:
+
+- `npm ci`: passed
+- `npx prisma generate`: passed
+- `npx prisma migrate deploy --config prisma.production.config.ts`: passed, no pending migrations
+- `npx prisma migrate status --config prisma.production.config.ts`: passed, schema up to date
+- `npm run typecheck`: passed
+- `npm run lint`: passed
+- `npm test`: passed, 39 tests
+- `npm run test:integration`: passed, 6 tests
+- `npm run build`: passed
+- Pre-switch `http://127.0.0.1:3112/login`: `200`
+- Dashboard HTTPS anonymous redirect: `307`
+- Login HTTPS: `200`
+- n8n HTTPS: `200`
+- PM2: `replyops` online; unrelated `flyrank-ai` online and untouched
+- Auth smoke: valid owner login `200`, accepted password var `REPLYOPS_OWNER_CURRENT_PASSWORD`, session cookie present, HttpOnly true, SameSite true, Secure true, invalid login `401`, anonymous dashboard `307`
+- DB smoke: `pgvector=vector`, application DB role `CREATEDB=false`
+- Gemini smoke: API key present, embedding dimension `768`, generation `ok=true`
+- Telegram smoke: token present, `getMe ok=true`, bot username `n8nanud_bot`
+- Unsigned internal API smoke: `401 missing_signature_headers`
+
 ## Security And Dependencies
 
 - No secrets were printed or committed.
@@ -117,15 +144,15 @@ Production release `/var/www/replyops/releases/20260728T152053Z`:
 - WhatsApp provider-live acceptance remains blocked by Meta credentials.
 - Full embedded Web Chat visual acceptance remains open.
 - Full n8n v4 execution matrix remains open beyond invalid-envelope smoke and source contract tests.
-- The new local clean migration and Playwright E2E work is not yet deployed to production in this status section.
-- Notion documentation was not yet updated after the 2026-07-28 19:11 local changes.
+- Signed n8n invalid-payload smoke was not rerun after the final deploy; unsigned internal API request returned `401 missing_signature_headers`.
+- Notion master documentation page `3aa47bf4-3cf3-802e-8034-ed179b19d754` was updated after the 2026-07-28 19:51 production deploy.
 
 ## Safe Rollback
 
 Application rollback:
 
 ```bash
-ln -sfnT /var/www/replyops/releases/20260728T151302Z /var/www/replyops/current
+ln -sfnT /var/www/replyops/releases/20260728T163943Z /var/www/replyops/current
 pm2 restart replyops --update-env
 pm2 save
 ```
@@ -138,7 +165,7 @@ cd /opt/n8n && docker compose restart n8n
 
 Backup restore source:
 
-- `/root/backups/replyops-20260728T151022Z`
+- `/root/backups/replyops-20260728T164743Z`
 
 ## Exact Manual Actions
 
