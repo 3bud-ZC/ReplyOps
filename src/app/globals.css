@@ -121,6 +121,26 @@ html[dir="rtl"] body {
   text-align: right;
 }
 
+[dir="rtl"] input[type="url"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="password"],
+[dir="rtl"] input[name*="id" i],
+[dir="rtl"] input[name*="url" i],
+[dir="rtl"] input[name*="token" i],
+[dir="rtl"] input[name*="secret" i],
+[dir="rtl"] input[name*="email" i],
+[dir="rtl"] input[name*="phone" i],
+[dir="rtl"] input[name*="slug" i],
+[dir="rtl"] input[name*="key" i],
+[dir="rtl"] code,
+[dir="rtl"] pre,
+[dir="rtl"] .font-mono,
+[data-ltr] {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: isolate;
+}
+
 .replyops-atmosphere {
   isolation: isolate;
   position: relative;

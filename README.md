@@ -6,7 +6,7 @@ The product is built for small teams that need AI automation without losing cont
 
 ## Capabilities
 
-- ABUD-branded dark/light dashboard with English and Arabic shell localization.
+- ABUD-branded dark/light dashboard with English and Arabic dashboard localization, RTL runtime sync, and page guides.
 - Tenant-scoped businesses, assistant configuration, knowledge sources, catalog data, channel setup, inbox, handoffs, actions, follow-ups, analytics, audit logs, and system health.
 - Knowledge/RAG flow for manual text, files, chunking, embeddings, retrieval, and grounded response generation.
 - Telegram, Web Chat, and WhatsApp software paths with encrypted credential storage and webhook contracts.
@@ -117,6 +117,8 @@ npm run test:e2e
 npm run secret-scan
 npm audit --omit=dev
 ```
+
+The Playwright suite includes an authenticated dashboard route matrix across 19 routes, 6 viewports, English/Arabic, and dark/light modes. It writes sanitized screenshots and `scratch/visual-qa/dashboard-route-matrix.json`; `scratch/` remains ignored.
 
 Provider-live checks, browser screenshots, production deployment verification, and restart persistence are tracked in `STATUS.md`.
 

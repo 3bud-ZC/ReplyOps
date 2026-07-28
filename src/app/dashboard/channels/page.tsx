@@ -115,7 +115,7 @@ export default async function ChannelsPage() {
                       {connection.tenant.name} · {connection.type} · {connection.connectionId}
                     </p>
                     {embedSnippet && (
-                      <code className="mt-3 block overflow-x-auto rounded-md border bg-muted p-3 text-xs text-muted-foreground">
+                      <code data-ltr className="mt-3 block overflow-x-auto rounded-md border bg-muted p-3 text-xs text-muted-foreground">
                         {embedSnippet}
                       </code>
                     )}

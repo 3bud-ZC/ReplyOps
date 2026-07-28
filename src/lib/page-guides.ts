@@ -192,11 +192,33 @@ Object.assign(ar, {
 
 const fallbackAr = (guide: PageGuide): PageGuide => ({
   ...guide,
-  purpose: `هذه الصفحة مخصصة لـ ${guide.title}. استخدم المساعدة السياقية لفهم الإعداد الآمن والخطوة التالية.`,
+  title: arTitle(guide.title),
+  purpose: `هذه الصفحة مخصصة لـ ${arTitle(guide.title)}. استخدم المساعدة السياقية لفهم الإعداد الآمن والخطوة التالية.`,
   action: "راجع الحالة الحالية ثم نفّذ الإجراء الأساسي الظاهر في الصفحة.",
   how: ["تُعرض الإجراءات الأساسية أولاً.", "تظهر الإعدادات المتقدمة عند الحاجة.", "تُسجل التغييرات المحمية في سجل التدقيق."],
   terms: [{ term: "مساحة العمل", definition: "بيانات وإعدادات عمل معزولة وآمنة." }],
 })
+
+function arTitle(title: string) {
+  return ({
+    Businesses: "الأعمال",
+    "AI Assistant": "المساعد الذكي",
+    Products: "المنتجات",
+    Services: "الخدمات",
+    "Policies & FAQs": "السياسات والأسئلة",
+    Channels: "القنوات",
+    "Human Handoff": "التسليم البشري",
+    "Actions & Approvals": "الإجراءات والموافقات",
+    "Follow-ups": "المتابعات",
+    "Test Lab": "مختبر الاختبار",
+    Analytics: "التحليلات",
+    "Audit Logs": "سجل التدقيق",
+    "System Health": "صحة النظام",
+    Team: "الفريق",
+    "Internal API Keys": "مفاتيح API الداخلية",
+    "Account Settings": "إعدادات الحساب",
+  } as Record<string, string>)[title] ?? title
+}
 
 for (const [path, guide] of Object.entries(ar)) {
   if (guide.purpose === en[path]?.purpose) ar[path] = fallbackAr(guide)
@@ -219,4 +241,3 @@ export function getPageGuide(pathname: string, locale: Locale): PageGuide {
     terms: [],
   })
 }
-

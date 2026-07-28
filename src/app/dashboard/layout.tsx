@@ -3,6 +3,8 @@ import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import { Sidebar } from "@/components/dashboard/Sidebar"
 import { Header } from "@/components/dashboard/Header"
+import { LocaleRuntime } from "@/components/dashboard/LocaleRuntime"
+import { PageContext } from "@/components/dashboard/PageContext"
 import { getAuthenticatedUser } from "@/lib/auth-utils"
 import { dictionary, localeDirection, normalizeLocale } from "@/lib/i18n"
 
@@ -18,6 +20,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <div className="flex h-screen overflow-hidden bg-background" dir={localeDirection(locale)} lang={locale}>
+      <LocaleRuntime locale={locale} />
       <a
         href="#dashboard-content"
         className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
@@ -29,6 +32,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       </div>
       <div className="flex flex-col flex-1 w-0 overflow-hidden">
         <Header locale={locale} roles={roles} userName={user.name ?? user.email} />
+        <PageContext locale={locale} />
         <main id="dashboard-content" className="flex-1 relative z-0 overflow-y-auto focus:outline-none">
           <div className="py-6 px-4 sm:px-6 lg:px-8">
             {children}
