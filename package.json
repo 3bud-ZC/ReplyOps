@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "test": "node --test tests/**/*.test.mjs",
     "test:integration": "node --test tests/integration/schema-contract.test.mjs",
-    "test:e2e": "node --test tests/e2e/dashboard-routes.test.mjs",
+    "test:e2e": "playwright test",
     "secret-scan": "node scripts/secret-scan.mjs",
     "bootstrap:owner": "node scripts/bootstrap-owner.mjs",
     "owner:current-password": "node scripts/generate-owner-current-password.mjs",
@@ -55,6 +55,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

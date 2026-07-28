@@ -62,6 +62,14 @@ npx prisma generate
 npx prisma migrate deploy
 ```
 
+The default Prisma config uses `prisma/migrations_clean`, a clean baseline for new installs and CI.
+Existing production deployments keep their applied legacy migration history via:
+
+```bash
+npx prisma migrate deploy --config prisma.production.config.ts
+npx prisma migrate status --config prisma.production.config.ts
+```
+
 5. Run:
 
 ```bash
@@ -98,13 +106,14 @@ Workflow exports live in `n8n/`. The v4 runtime workflow calls protected interna
 npx prisma format
 npx prisma validate
 npx prisma generate
+npx prisma migrate deploy
 npx prisma migrate status
 npm run typecheck
 npm run lint
 npm test
 npm run test:integration
-npm run test:e2e
 npm run build
+npm run test:e2e
 npm run secret-scan
 npm audit --omit=dev
 ```
@@ -118,6 +127,7 @@ Production deployment uses immutable release directories:
 - build a new release directory
 - link shared environment and uploads
 - run migrations and verification inside the release
+- use `prisma.production.config.ts` for existing production migration history
 - precheck on a spare port
 - switch the `current` symlink only after checks pass
 - restart the single ReplyOps PM2 process

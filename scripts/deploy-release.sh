@@ -16,12 +16,12 @@ ln -sfn /var/www/replyops/shared/uploads uploads
 
 npm ci
 npx prisma generate
-npx prisma migrate deploy
+npx prisma migrate deploy --config prisma.production.config.ts
+npx prisma migrate status --config prisma.production.config.ts
 npm run typecheck
 npm run lint
 npm test
 npm run test:integration
-npm run test:e2e
 npm run build
 
 nohup npx next start -p 3112 -H 127.0.0.1 > "$PRECHECK_LOG" 2>&1 &

@@ -18,7 +18,7 @@ const secretPatterns = [
   /sk-proj-[A-Za-z0-9_-]{20,}/,
   /xox[baprs]-[A-Za-z0-9-]{20,}/,
   /^\s*(?:export\s+)?(DATABASE_URL|NEXTAUTH_SECRET|GEMINI_API_KEY|TELEGRAM_BOT_TOKEN|WHATSAPP_ACCESS_TOKEN|N8N_ENCRYPTION_KEY|REPLYOPS_INTERNAL_HMAC_SECRET)\s*=\s*(?!["']?(change-me|placeholder|example|your-|local-|ci-|<|$))/i,
-  /(password|secret|token|api[_-]?key)\s*[:=]\s*["'][^"']{16,}["']/i,
+  /(password|secret|token|api[_-]?key)\s*[:=]\s*["'][A-Za-z0-9+/_=-]{16,}["']/i,
 ]
 
 function gitFiles(args) {

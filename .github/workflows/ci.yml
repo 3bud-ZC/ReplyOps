@@ -41,15 +41,20 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npx playwright install --with-deps chromium
       - run: npx prisma format
       - run: npx prisma validate
       - run: npx prisma generate
-      - run: npx prisma db push
+      - run: npx prisma migrate deploy
+      - run: npx prisma migrate status
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
       - run: npm run test:integration
-      - run: npm run test:e2e
       - run: npm run build
+      - run: npm run test:e2e
+        env:
+          REPLYOPS_OWNER_BOOTSTRAP_PASSWORD: ci-owner-bootstrap-password-2026
+          REPLYOPS_OWNER_FORCE_PASSWORD_CHANGE: "false"
       - run: npm run secret-scan
       - run: npm audit --omit=dev --audit-level=critical

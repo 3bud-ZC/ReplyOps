@@ -37,6 +37,21 @@ test("schema contains owner session revocation field", async () => {
   assert.match(schema, /sessionVersion\s+Int\s+@default\(0\)/)
 })
 
+test("fresh install and production migrations use explicit Prisma configs", async () => {
+  const defaultConfig = await readFile(path.join(process.cwd(), "prisma.config.ts"), "utf8")
+  const productionConfig = await readFile(path.join(process.cwd(), "prisma.production.config.ts"), "utf8")
+  const ciWorkflow = await readFile(path.join(process.cwd(), ".github", "workflows", "ci.yml"), "utf8")
+  const deployScript = await readFile(path.join(process.cwd(), "scripts", "deploy-release.sh"), "utf8")
+
+  assert.match(defaultConfig, /path:\s+"prisma\/migrations_clean"/)
+  assert.match(productionConfig, /path:\s+"prisma\/migrations"/)
+  assert.match(ciWorkflow, /npx prisma migrate deploy/)
+  assert.match(ciWorkflow, /npx prisma migrate status/)
+  assert.doesNotMatch(ciWorkflow, /prisma db push/)
+  assert.match(deployScript, /prisma migrate deploy --config prisma\.production\.config\.ts/)
+  assert.match(deployScript, /prisma migrate status --config prisma\.production\.config\.ts/)
+})
+
 test("URL ingestion code blocks SSRF-sensitive targets", async () => {
   const parser = await readFile(path.join(process.cwd(), "src", "lib", "knowledge", "parser.ts"), "utf8")
 

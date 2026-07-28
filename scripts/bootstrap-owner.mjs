@@ -10,6 +10,7 @@ import dotenv from "dotenv"
 
 const OWNER_EMAIL = "abudfun@gmail.com"
 const PASSWORD_VARIABLE = "REPLYOPS_OWNER_BOOTSTRAP_PASSWORD"
+const forcePasswordChange = process.env.REPLYOPS_OWNER_FORCE_PASSWORD_CHANGE !== "false"
 
 const dashboardRoot = process.cwd()
 const repoRoot = path.resolve(dashboardRoot, "..")
@@ -85,14 +86,14 @@ async function main() {
       where: { email: OWNER_EMAIL },
       update: {
         passwordHash,
-        forcePasswordChange: true,
+        forcePasswordChange,
         sessionVersion: { increment: 1 },
       },
       create: {
         email: OWNER_EMAIL,
         name: "Abud",
         passwordHash,
-        forcePasswordChange: true,
+        forcePasswordChange,
       },
     })
 

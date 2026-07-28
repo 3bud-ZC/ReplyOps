@@ -4,7 +4,14 @@ import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 
-export default function LoginForm() {
+type LoginLabels = {
+  email: string
+  password: string
+  invalidEmailOrPassword: string
+  signIn: string
+}
+
+export default function LoginForm({ labels }: { labels: LoginLabels }) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -21,7 +28,7 @@ export default function LoginForm() {
     })
 
     if (result?.error) {
-      setError("Invalid email or password")
+      setError(labels.invalidEmailOrPassword)
     } else {
       router.push("/dashboard")
       router.refresh()
@@ -32,7 +39,7 @@ export default function LoginForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="text-red-500 text-sm">{error}</div>}
       <div>
-        <label htmlFor="login-email" className="block text-sm font-medium mb-1">Email</label>
+        <label htmlFor="login-email" className="block text-sm font-medium mb-1">{labels.email}</label>
         <input 
           id="login-email"
           type="email" 
@@ -44,7 +51,7 @@ export default function LoginForm() {
         />
       </div>
       <div>
-        <label htmlFor="login-password" className="block text-sm font-medium mb-1">Password</label>
+        <label htmlFor="login-password" className="block text-sm font-medium mb-1">{labels.password}</label>
         <input 
           id="login-password"
           type="password" 
@@ -59,7 +66,7 @@ export default function LoginForm() {
         type="submit"
         className="w-full bg-primary text-primary-foreground py-2 rounded-md hover:bg-primary/90 transition-colors"
       >
-        Sign In
+        {labels.signIn}
       </button>
     </form>
   )

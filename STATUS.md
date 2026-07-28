@@ -1,15 +1,15 @@
 # ReplyOps Production Status
 
-Updated: 2026-07-28 18:29 Africa/Cairo
+Updated: 2026-07-28 19:19 Africa/Cairo
 
 ## Completion
 
-- Overall completion: 94%
+- Overall completion: 95%
 - Internal software completion: 98%
 - External provider live acceptance: 60%
-- Dashboard: 98%
+- Dashboard: 99%
 - Backend/runtime: 97%
-- Database and migrations: 94%
+- Database and migrations: 98%
 - n8n v4: 88%
 - Telegram software: 94%
 - Telegram live acceptance: 65%
@@ -20,7 +20,7 @@ Updated: 2026-07-28 18:29 Africa/Cairo
 - Follow-ups: 90%
 - Analytics: 86%
 
-Percentages are not 100%. Remaining gaps are full authenticated visual QA, real Telegram owner-user acceptance sequence, full embedded Web Chat visual acceptance, WhatsApp provider-live acceptance, full n8n v4 execution matrix, and dependency advisories that require framework/vendor updates.
+Percentages are not 100%. Remaining gaps are full authenticated visual QA matrix across all dashboard pages, remaining page-level localization outside the shell/auth/overview path, real Telegram owner-user acceptance sequence, full embedded Web Chat visual acceptance, WhatsApp provider-live acceptance, full n8n v4 execution matrix, and dependency advisories that require framework/vendor updates.
 
 ## Production
 
@@ -32,10 +32,10 @@ Percentages are not 100%. Remaining gaps are full authenticated visual QA, real 
 - Deployed source commit: `f67c3d1`
 - GitHub repository: `https://github.com/3bud-ZC/ReplyOps`
 - Final branch: `main`
-- Final branch commit: `b1d28a625b10`
+- Final branch commit: `859f765e7b62`
 - Git tag: `v0.1.0` at `2c8b84e96cd3`
 - GitHub Release: `https://github.com/3bud-ZC/ReplyOps/releases/tag/v0.1.0`
-- GitHub CI: passed on run `30373908644`
+- GitHub CI: passed on run `30374131467`
 - PM2 process: `replyops`, online on port `3111`
 - Port `3110`: still owned by `flyrank-ai`
 - Spare precheck port `3112`: stopped after validation
@@ -55,6 +55,10 @@ Percentages are not 100%. Remaining gaps are full authenticated visual QA, real 
 - Deployed immutable release `/var/www/replyops/releases/20260728T152053Z`.
 - Restarted ReplyOps PM2 and n8n Docker service, then reverified both.
 - Published `main` to GitHub, created tag `v0.1.0`, created GitHub Release, and verified CI passed after the CI database adjustment.
+- Added a clean Prisma migration baseline under `prisma/migrations_clean` and made it the default config for fresh installs and CI.
+- Preserved existing production migration history with `prisma.production.config.ts`; immutable deploys now run `prisma migrate deploy/status --config prisma.production.config.ts`.
+- Replaced the source-only E2E route contract with real Playwright Chromium auth E2E: owner bootstrap into a disposable database, browser login, and `#dashboard-content` assertion.
+- Localized auth screens and the dashboard overview path through the shared Arabic/English dictionary, including RTL/LTR document attributes.
 
 ## Verified Checks
 
@@ -64,14 +68,16 @@ Local:
 - `npx prisma format`: passed
 - `npx prisma validate`: passed
 - `npx prisma generate`: passed
+- `npx prisma migrate deploy`: passed on a disposable empty pgvector Docker database using the clean baseline
+- `npx prisma migrate status`: passed on the same disposable database
 - `npm run typecheck`: passed
 - `npm run lint`: passed
 - `npm test`: passed, 39 tests
-- `npm run test:integration`: passed, 5 tests
-- `npm run test:e2e`: passed, 1 source route test
-- `npm run build`: passed
-- `npm run secret-scan`: passed, 166 git-visible files checked
-- `npm audit --omit=dev`: 7 advisories, 0 critical
+- `npm run test:integration`: passed, 6 tests
+- `npm run build`: passed against a disposable migrated pgvector database
+- `npm run test:e2e`: passed, 1 Playwright Chromium authenticated browser test
+- `npm run secret-scan`: passed, 170 git-visible files checked
+- `npm audit --omit=dev --audit-level=critical`: passed; 7 non-critical advisories remain
 
 Production release `/var/www/replyops/releases/20260728T152053Z`:
 
@@ -106,13 +112,13 @@ Production release `/var/www/replyops/releases/20260728T152053Z`:
 ## Not Fully Verified
 
 - Full authenticated browser visual QA across all dashboard routes, viewports, themes, and locales was not rerun in this session.
-- Complete Arabic coverage is improved at shell level but repository-wide page string localization is still incomplete.
+- Complete Arabic coverage is improved at shell, auth, and overview level but repository-wide page string localization is still incomplete.
 - Real Telegram user-originated acceptance sequence remains manual.
 - WhatsApp provider-live acceptance remains blocked by Meta credentials.
 - Full embedded Web Chat visual acceptance remains open.
 - Full n8n v4 execution matrix remains open beyond invalid-envelope smoke and source contract tests.
-- GitHub CI passed using `prisma db push` against an ephemeral service database because the legacy `initial_schema_sync` migration folder sorts after additive migrations on fresh databases. Production migration history is applied and up to date; clean-install migration rebaselining remains a packaging task.
-- Notion documentation was not updated in this session.
+- The new local clean migration and Playwright E2E work is not yet deployed to production in this status section.
+- Notion documentation was not yet updated after the 2026-07-28 19:11 local changes.
 
 ## Safe Rollback
 

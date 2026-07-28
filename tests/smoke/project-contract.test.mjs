@@ -130,7 +130,9 @@ test("owner credential bootstrap and reset controls exist", async () => {
   assert.match(sync, /REPLYOPS_OWNER_CURRENT_PASSWORD/)
   assert.match(encryptionKey, /REPLYOPS_CREDENTIALS_ENCRYPTION_KEY/)
   assert.match(encryptionKeySync, /REPLYOPS_CREDENTIALS_ENCRYPTION_KEY/)
-  assert.match(bootstrap, /forcePasswordChange:\s*true/)
+  assert.match(bootstrap, /REPLYOPS_OWNER_FORCE_PASSWORD_CHANGE/)
+  assert.match(bootstrap, /process\.env\.REPLYOPS_OWNER_FORCE_PASSWORD_CHANGE !== "false"/)
+  assert.match(bootstrap, /forcePasswordChange,/)
   assert.match(sync, /\/var\/www\/replyops\/shared\/\.env/)
   assert.match(accountActions, /resetUserCredential/)
   assert.match(accountActions, /sessionVersion:\s*\{\s*increment:\s*1\s*\}/)
@@ -193,9 +195,11 @@ test("CI runs required launch gates", async () => {
   const ci = await readFile(path.join(root, ".github", "workflows", "ci.yml"), "utf8")
   for (const token of [
     "npm ci",
+    "npx playwright install --with-deps chromium",
     "npx prisma validate",
     "npx prisma generate",
-    "npx prisma db push",
+    "npx prisma migrate deploy",
+    "npx prisma migrate status",
     "npm run typecheck",
     "npm run lint",
     "npm test",
@@ -207,6 +211,7 @@ test("CI runs required launch gates", async () => {
   ]) {
     assert.match(ci, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")))
   }
+  assert.doesNotMatch(ci, /prisma db push/)
 })
 
 test("Arabic and English dictionaries have matching keys", async () => {

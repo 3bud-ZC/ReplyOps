@@ -3,7 +3,14 @@
 import { useState } from "react"
 import { signOut } from "next-auth/react"
 
-export default function ChangePasswordForm() {
+type ChangePasswordLabels = {
+  currentPassword: string
+  newPassword: string
+  changePassword: string
+  changing: string
+}
+
+export default function ChangePasswordForm({ labels }: { labels: ChangePasswordLabels }) {
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [error, setError] = useState("")
@@ -48,8 +55,9 @@ export default function ChangePasswordForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="text-red-500 text-sm">{error}</div>}
       <div>
-        <label className="block text-sm font-medium mb-1">Current Password</label>
+        <label htmlFor="current-password" className="block text-sm font-medium mb-1">{labels.currentPassword}</label>
         <input 
+          id="current-password"
           type="password" 
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
@@ -58,8 +66,9 @@ export default function ChangePasswordForm() {
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">New Password</label>
+        <label htmlFor="new-password" className="block text-sm font-medium mb-1">{labels.newPassword}</label>
         <input 
+          id="new-password"
           type="password" 
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
@@ -73,7 +82,7 @@ export default function ChangePasswordForm() {
         disabled={loading}
         className="w-full bg-primary text-primary-foreground py-2 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
       >
-        {loading ? "Changing..." : "Change Password"}
+        {loading ? labels.changing : labels.changePassword}
       </button>
     </form>
   )

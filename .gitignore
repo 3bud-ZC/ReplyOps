@@ -51,6 +51,7 @@ server_env.txt
 merged_env.txt
 *.sql
 !prisma/migrations/**/*.sql
+!prisma/migrations_clean/**/*.sql
 *.dump
 *.log
 *.tar.gz
