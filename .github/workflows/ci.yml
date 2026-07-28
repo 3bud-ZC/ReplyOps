@@ -44,6 +44,7 @@ jobs:
       - run: npx prisma format
       - run: npx prisma validate
       - run: npx prisma generate
+      - run: npx prisma migrate deploy
       - run: npx prisma migrate status
       - run: npm run typecheck
       - run: npm run lint
