@@ -1,0 +1,638 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+enum Role {
+  platform_owner
+  tenant_owner
+  tenant_admin
+  agent
+  viewer
+}
+
+model User {
+  id                  String              @id @default(uuid())
+  email               String              @unique
+  passwordHash        String
+  name                String?
+  active              Boolean             @default(true)
+  forcePasswordChange Boolean             @default(true)
+  sessionVersion      Int                 @default(0)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  memberships         Membership[]
+  invitationsSent     Invitation[]
+  sessions            Session[]
+  handoffsAssigned    HandoffAssignment[]
+  internalNotes       InternalNote[]
+  auditLogs           AuditLog[]
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Tenant {
+  id                     String                  @id @default(uuid())
+  name                   String
+  slug                   String                  @unique
+  industry               String?
+  description            String?                 @db.Text
+  logoUrl                String?
+  timezone               String                  @default("Africa/Cairo")
+  primaryLanguage        String                  @default("ar")
+  supportedLanguages     String[]                @default(["ar", "en"])
+  workingHours           Json?
+  contactData            Json?
+  defaultCurrency        String                  @default("EGP")
+  enabled                Boolean                 @default(true)
+  dataRetentionDays      Int                     @default(365)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  deletedAt              DateTime?
+  memberships            Membership[]
+  invitations            Invitation[]
+  assistantConfiguration AssistantConfiguration?
+  channelConnections     ChannelConnection[]
+  customers              Customer[]
+  conversations          Conversation[]
+  knowledgeDocuments     KnowledgeDocument[]
+  products               Product[]
+  services               Service[]
+  policies               Policy[]
+  faqs                   FAQ[]
+  handoffs               Handoff[]
+  internalNotes          InternalNote[]
+  actionDefinitions      ActionDefinition[]
+  followupRules          FollowupRule[]
+  usageMetrics           UsageMetric[]
+  apiKeys                ApiKey[]
+  webhookEvents          WebhookEvent[]
+  auditLogs              AuditLog[]
+  deadLetterEvents       DeadLetterEvent[]
+  knowledgeChunks        KnowledgeChunk[]
+  knowledgeSources       KnowledgeSource[]
+}
+
+model Membership {
+  id        String   @id @default(uuid())
+  role      Role
+  active    Boolean  @default(true)
+  userId    String
+  tenantId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model Invitation {
+  id          String    @id @default(uuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  email       String
+  role        Role
+  tokenHash   String
+  invitedById String?
+  invitedBy   User?     @relation(fields: [invitedById], references: [id], onDelete: SetNull)
+  acceptedAt  DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([email])
+  @@index([expiresAt])
+}
+
+model AssistantConfiguration {
+  id                      String   @id @default(uuid())
+  tenantId                String   @unique
+  tenant                  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assistantName           String   @default("Assistant")
+  language                String   @default("ar")
+  dialect                 String   @default("egyptian")
+  tone                    String   @default("professional")
+  responseLength          String   @default("concise")
+  emojiPolicy             String   @default("allowed")
+  greeting                String?
+  helpMessage             String?
+  apologyStyle            String?
+  escalationStyle         String?
+  systemRules             String?
+  prohibitedTopics        String?
+  confidenceThreshold     Float    @default(0.7)
+  groundingThreshold      Float    @default(0.7)
+  memoryLength            Int      @default(10)
+  maxResponseLength       Int      @default(1200)
+  enabledActions          String[]
+  approvalRequiredActions String[]
+  businessHoursBehavior   String   @default("answer_with_offline_notice")
+  offlineResponseBehavior String   @default("answer_with_handoff_option")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model ChannelConnection {
+  id                String             @id @default(uuid())
+  tenantId          String
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type              String
+  connectionId      String             @unique
+  status            String             @default("disconnected")
+  displayName       String
+  webhookSecret     String?
+  externalAccountId String?
+  lastVerifiedTime  DateTime?
+  lastError         String?
+  enabled           Boolean            @default(true)
+  credentials       ChannelCredential?
+  conversations     Conversation[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+
+  @@index([tenantId])
+  @@index([connectionId])
+}
+
+model ChannelCredential {
+  id                  String            @id @default(uuid())
+  channelConnectionId String            @unique
+  channelConnection   ChannelConnection @relation(fields: [channelConnectionId], references: [id], onDelete: Cascade)
+  encryptedPayload    String
+  iv                  String
+  authTag             String
+  credentialVersion   Int               @default(1)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+}
+
+model Customer {
+  id               String         @id @default(uuid())
+  tenantId         String
+  tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  externalId       String?
+  name             String?
+  phone            String?
+  email            String?
+  marketingConsent Boolean        @default(false)
+  optedOutAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  deletedAt        DateTime?
+  conversations    Conversation[]
+
+  @@unique([tenantId, externalId])
+  @@index([tenantId])
+}
+
+model Conversation {
+  id                  String            @id @default(uuid())
+  tenantId            String
+  tenant              Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerId          String
+  customer            Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  channelConnectionId String
+  channelConnection   ChannelConnection @relation(fields: [channelConnectionId], references: [id], onDelete: Cascade)
+  externalThreadId    String?
+  status              String            @default("active")
+  automationPaused    Boolean           @default(false)
+  lastMessageAt       DateTime?
+  messages            Message[]
+  handoffs            Handoff[]
+  internalNotes       InternalNote[]
+  followupJobs        FollowupJob[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@unique([tenantId, channelConnectionId, externalThreadId])
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([channelConnectionId])
+}
+
+model Message {
+  id                String       @id @default(uuid())
+  conversationId    String
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  externalMessageId String?
+  direction         String // inbound, outbound
+  content           String
+  role              String // user, model, system
+  intent            String?
+  confidence        Float?
+  knowledgeGap      Boolean      @default(false)
+  handoffRequired   Boolean      @default(false)
+  sourcesUsed       Json?
+  actionState       String?
+  deliveryStatus    String       @default("stored")
+  providerPayload   Json?
+  createdAt         DateTime     @default(now())
+
+  @@unique([conversationId, externalMessageId])
+  @@index([conversationId])
+}
+
+model KnowledgeDocument {
+  id              String            @id @default(uuid())
+  tenantId        String
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title           String
+  type            String // MANUAL_TEXT, FAQ, POLICY, PRODUCT, SERVICE, PDF, DOCX, TXT, CSV, XLSX, URL
+  content         String?           @db.Text
+  metadata        Json?
+  indexingStatus  String            @default("DRAFT") // DRAFT, QUEUED, PROCESSING, READY, FAILED, ARCHIVED
+  chunkCount      Int               @default(0)
+  lastIndexedTime DateTime?
+  errorReason     String?
+  chunks          KnowledgeChunk[]
+  sources         KnowledgeSource[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  deletedAt       DateTime?
+
+  @@index([tenantId])
+}
+
+model KnowledgeChunk {
+  id                  String                      @id @default(uuid())
+  tenantId            String
+  tenant              Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  knowledgeDocumentId String
+  knowledgeDocument   KnowledgeDocument           @relation(fields: [knowledgeDocumentId], references: [id], onDelete: Cascade)
+  content             String                      @db.Text
+  metadata            Json? // chunk index, original section, page or sheet
+  embedding           Unsupported("vector(768)")?
+  status              String                      @default("ACTIVE") // ACTIVE, STALE
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+
+  @@index([knowledgeDocumentId])
+  @@index([tenantId])
+}
+
+model KnowledgeSource {
+  id                  String            @id @default(uuid())
+  tenantId            String
+  tenant              Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  knowledgeDocumentId String
+  knowledgeDocument   KnowledgeDocument @relation(fields: [knowledgeDocumentId], references: [id], onDelete: Cascade)
+  sourceType          String // MANUAL_TEXT, URL, FILE, etc.
+  sourceUrl           String?
+  sourceFilePath      String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([knowledgeDocumentId])
+  @@index([tenantId])
+}
+
+model Product {
+  id                  String           @id @default(uuid())
+  tenantId            String
+  tenant              Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name                String
+  description         String?
+  price               Float?
+  currency            String           @default("EGP")
+  sku                 String?
+  stockState          String           @default("in_stock")
+  tags                String[]
+  links               Json?
+  shippingInformation String?
+  variants            ProductVariant[]
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  deletedAt           DateTime?
+
+  @@index([tenantId])
+}
+
+model ProductVariant {
+  id         String   @id @default(uuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name       String
+  sku        String?
+  price      Float?
+  stockState String   @default("in_stock")
+  attributes Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([productId])
+}
+
+model Service {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  tenant              Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name                String
+  description         String?
+  priceNote           String?
+  duration            String?
+  availability        String?
+  bookingRequirements String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+
+  @@index([tenantId])
+}
+
+model Policy {
+  id        String    @id @default(uuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  type      String // shipping, returns, refunds, privacy, discounts, custom
+  title     String
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([tenantId])
+}
+
+model FAQ {
+  id        String    @id @default(uuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  question  String
+  answer    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([tenantId])
+}
+
+model Handoff {
+  id             String              @id @default(uuid())
+  tenantId       String
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  status         String              @default("open")
+  reason         String?
+  priority       String              @default("normal")
+  internalNotes  String?
+  notes          InternalNote[]
+  assignments    HandoffAssignment[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([tenantId])
+  @@index([conversationId])
+}
+
+model HandoffAssignment {
+  id        String   @id @default(uuid())
+  handoffId String
+  handoff   Handoff  @relation(fields: [handoffId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([handoffId])
+  @@index([userId])
+}
+
+model InternalNote {
+  id             String       @id @default(uuid())
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  handoffId      String?
+  handoff        Handoff?     @relation(fields: [handoffId], references: [id], onDelete: SetNull)
+  authorUserId   String?
+  author         User?        @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  body           String       @db.Text
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  @@index([tenantId])
+  @@index([conversationId])
+  @@index([handoffId])
+  @@index([authorUserId])
+}
+
+model ActionDefinition {
+  id                   String          @id @default(uuid())
+  tenantId             String
+  tenant               Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name                 String
+  enabled              Boolean         @default(true)
+  requiresApproval     Boolean         @default(false)
+  requiredFields       String[]
+  method               String          @default("POST")
+  url                  String
+  headers              Json?
+  encryptedAuthPayload String?
+  authIv               String?
+  authTag              String?
+  allowedDomains       String[]        @default([])
+  requestTemplate      Json?
+  responseMapping      Json?
+  timeout              Int             @default(5000)
+  retry                Int             @default(0)
+  requests             ActionRequest[]
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  deletedAt            DateTime?
+
+  @@index([tenantId])
+}
+
+model ActionRequest {
+  id                 String           @id @default(uuid())
+  actionDefinitionId String
+  actionDefinition   ActionDefinition @relation(fields: [actionDefinitionId], references: [id], onDelete: Cascade)
+  status             String           @default("pending")
+  executionLog       Json?
+  result             Json?
+  approvals          ActionApproval[]
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([actionDefinitionId])
+}
+
+model ActionApproval {
+  id              String        @id @default(uuid())
+  actionRequestId String
+  actionRequest   ActionRequest @relation(fields: [actionRequestId], references: [id], onDelete: Cascade)
+  status          String        @default("pending")
+  createdAt       DateTime      @default(now())
+
+  @@index([actionRequestId])
+}
+
+model FollowupRule {
+  id               String        @id @default(uuid())
+  tenantId         String
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enabled          Boolean       @default(false)
+  consentRequired  Boolean       @default(true)
+  quietHoursStart  String        @default("22:00")
+  quietHoursEnd    String        @default("08:00")
+  timezone         String        @default("Africa/Cairo")
+  minimumDelay     Int           @default(3600)
+  maximumAttempts  Int           @default(3)
+  channelLimits    Json?
+  optOutLogic      String?
+  messageTemplates Json?
+  jobs             FollowupJob[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  deletedAt        DateTime?
+
+  @@index([tenantId])
+}
+
+model FollowupJob {
+  id             String        @id @default(uuid())
+  followupRuleId String
+  followupRule   FollowupRule  @relation(fields: [followupRuleId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  customerId     String?
+  payload        Json?
+  status         String        @default("pending")
+  scheduledFor   DateTime
+  attempts       Int           @default(0)
+  lastError      String?
+  createdAt      DateTime      @default(now())
+
+  @@index([followupRuleId])
+  @@index([conversationId])
+  @@index([customerId])
+  @@index([scheduledFor])
+}
+
+model UsageMetric {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  metric    String
+  value     Float
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model ApiKey {
+  id              String    @id @default(uuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  keyId           String    @unique
+  keyHash         String
+  name            String
+  scopes          String[]
+  encryptedSecret String?
+  iv              String?
+  authTag         String?
+  enabled         Boolean   @default(true)
+  lastUsedAt      DateTime?
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  @@index([tenantId])
+  @@index([enabled])
+  @@index([expiresAt])
+}
+
+model WebhookEvent {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  eventType String
+  payload   Json
+  status    String   @default("received")
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  resource  String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model SystemEvent {
+  id        String   @id @default(uuid())
+  type      String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model InternalNonce {
+  id        String   @id @default(uuid())
+  nonce     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+model RateLimitBucket {
+  id         String   @id @default(uuid())
+  identifier String   @unique
+  count      Int      @default(0)
+  resetAt    DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([resetAt])
+}
+
+model DeadLetterEvent {
+  id           String    @id @default(uuid())
+  tenantId     String?
+  tenant       Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  source       String
+  eventType    String
+  payload      Json
+  errorMessage String?
+  status       String    @default("open")
+  attempts     Int       @default(0)
+  nextRetryAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([nextRetryAt])
+}

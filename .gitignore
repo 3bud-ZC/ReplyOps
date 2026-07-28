@@ -39,3 +39,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+.env
+.env.*
+!.env.example
+SECRETS.local.env
+temp_*.env
+server_env.txt
+merged_env.txt
+*.sql
+!prisma/migrations/**/*.sql
+*.dump
+*.log
+*.tar.gz
+deploy.zip
+deploy.tar.gz
+scratch/
+update.sql
+.agents/
+.claude/
+.windsurf/
+.playwright-cli/

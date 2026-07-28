@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: replyops_user
+          POSTGRES_PASSWORD: replyops_password
+          POSTGRES_DB: replyops_app
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U replyops_user -d replyops_app"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://replyops_user:replyops_password@localhost:5433/replyops_app
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ci-placeholder-secret-at-least-32-characters
+      REPLYOPS_CREDENTIALS_ENCRYPTION_KEY: ci-placeholder-32-byte-base64-key
+      REPLYOPS_INTERNAL_HMAC_SECRET: ci-placeholder-hmac-secret
+      REPLYOPS_INTERNAL_HMAC_KEY_ID: ci-key
+      GEMINI_API_KEY: ci-placeholder
+      TELEGRAM_WEBHOOK_BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx prisma format
+      - run: npx prisma validate
+      - run: npx prisma generate
+      - run: npx prisma migrate status
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run test:integration
+      - run: npm run test:e2e
+      - run: npm run build
+      - run: npm run secret-scan
+      - run: npm audit --omit=dev --audit-level=critical

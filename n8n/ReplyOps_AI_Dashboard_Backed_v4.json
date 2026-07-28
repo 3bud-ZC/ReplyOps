@@ -1,0 +1,152 @@
+{
+  "id": "replyops-dashboard-backed-v4",
+  "name": "ReplyOps AI Dashboard Backed v4",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "replyops/v4/runtime",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b7c2bb42-718c-45e8-a912-5d68af7f13a9",
+      "name": "Receive Normalized Channel Envelope",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "replyops-v4-runtime"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst input = $input.first().json;\nconst body = input.body && typeof input.body === 'object' ? input.body : input;\nconst requestId = String(body.request_id || body.requestId || crypto.randomUUID());\nconst idempotencyKey = String(body.idempotency_key || body.idempotencyKey || body.external_message_id || body.message_id || '');\nconst tenantId = String(body.tenant_id || body.tenantId || '');\nconst channelConnectionId = String(body.channel_connection_id || body.channelConnectionId || '');\nconst externalCustomerId = String(body.external_customer_id || body.customer_id || body.customerId || '');\nconst content = String(body.content || body.message_text || body.message || '').trim();\nconst externalThreadId = String(body.external_thread_id || body.conversation_id || body.externalThreadId || externalCustomerId);\nconst externalMessageId = String(body.external_message_id || body.message_id || idempotencyKey);\nconst missing = [];\nfor (const [key, value] of Object.entries({ tenant_id: tenantId, channel_connection_id: channelConnectionId, external_customer_id: externalCustomerId, external_thread_id: externalThreadId, external_message_id: externalMessageId, content, request_id: requestId, idempotency_key: idempotencyKey })) {\n  if (!value) missing.push(key);\n}\nif (missing.length) {\n  return [{ json: { valid: false, request_id: requestId, error: 'invalid_payload', missing } }];\n}\nreturn [{ json: {\n  valid: true,\n  request_id: requestId,\n  idempotency_key: idempotencyKey,\n  tenant_id: tenantId,\n  channel_connection_id: channelConnectionId,\n  external_customer_id: externalCustomerId,\n  external_thread_id: externalThreadId,\n  external_message_id: externalMessageId,\n  content,\n  customer_name: String(body.customer_name || body.customer?.name || ''),\n  provider_payload: body.provider_payload || body.metadata || {},\n  orchestration_trace: [\n    'receive_envelope',\n    'validate_schema',\n    'validate_required_ids',\n    'validate_request_id',\n    'validate_idempotency_key',\n    'resolve_runtime_config',\n    'resolve_assistant_config',\n    'resolve_channel_config',\n    'load_recent_memory',\n    'normalize_customer_message',\n    'detect_language',\n    'detect_prompt_injection',\n    'classify_intent',\n    'detect_sentiment_urgency',\n    'retrieve_tenant_knowledge',\n    'evaluate_retrieval_confidence',\n    'generate_grounded_answer',\n    'independent_grounding_judge',\n    'apply_confidence_threshold',\n    'apply_knowledge_gap_policy',\n    'apply_business_hours_policy',\n    'apply_prohibited_topic_policy',\n    'determine_handoff',\n    'determine_action',\n    'determine_approval',\n    'schedule_followup_policy',\n    'persist_messages_sources_trace_usage_analytics_delivery',\n    'classify_provider_and_api_failures',\n    'bounded_retry_dead_letter_incident',\n    'stable_response_contract'\n  ]\n} }];"
+      },
+      "id": "1a864cd1-16a8-4e02-9a94-c5bc4ff11c6f",
+      "name": "Validate Envelope And Required IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.valid}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "6259ab29-5d17-41dd-a142-4b5632a214fe",
+      "name": "Envelope Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [500, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst payload = { ...$json };\ndelete payload.valid;\nconst body = JSON.stringify(payload);\nconst keyId = String($env.REPLYOPS_INTERNAL_KEY_ID || '');\nconst secret = String($env.REPLYOPS_INTERNAL_KEY_SECRET || '');\nconst baseUrl = String($env.REPLYOPS_BASE_URL || 'https://replyops.abud.fun').replace(/\\/$/, '');\nif (!keyId || !secret) throw new Error('replyops_internal_key_missing');\nconst timestamp = String(Date.now());\nconst nonce = crypto.randomUUID();\nconst method = 'POST';\nconst path = '/api/internal/messages/incoming';\nconst bodyHash = crypto.createHash('sha256').update(body).digest('hex');\nconst canonical = [keyId, timestamp, nonce, method, path, bodyHash].join('\\n');\nconst signature = crypto.createHmac('sha256', secret).update(canonical).digest('hex');\nreturn [{ json: { request_id: payload.request_id, url: `${baseUrl}${path}`, body, headers: { 'content-type': 'application/json', 'x-request-id': payload.request_id, 'x-replyops-key-id': keyId, 'x-replyops-timestamp': timestamp, 'x-replyops-nonce': nonce, 'x-replyops-body-sha256': bodyHash, 'x-replyops-signature': signature } } }];"
+      },
+      "id": "2f7d6f84-d3fc-4d65-a83e-7532587e1641",
+      "name": "Sign ReplyOps HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, -100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$json.url}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "content-type", "value": "={{$json.headers['content-type']}}" },
+            { "name": "x-request-id", "value": "={{$json.headers['x-request-id']}}" },
+            { "name": "x-replyops-key-id", "value": "={{$json.headers['x-replyops-key-id']}}" },
+            { "name": "x-replyops-timestamp", "value": "={{$json.headers['x-replyops-timestamp']}}" },
+            { "name": "x-replyops-nonce", "value": "={{$json.headers['x-replyops-nonce']}}" },
+            { "name": "x-replyops-body-sha256", "value": "={{$json.headers['x-replyops-body-sha256']}}" },
+            { "name": "x-replyops-signature", "value": "={{$json.headers['x-replyops-signature']}}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{$json.body}}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "40cd475d-62e7-40d7-93db-915a47d06787",
+      "name": "ReplyOps Runtime Orchestrator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1020, -100],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nif (input && input.success === true && input.request_id && input.conversation_id) {\n  return [{ json: input }];\n}\nconst error = String(input.error || input.message || 'replyops_api_failure');\nreturn [{ json: {\n  success: false,\n  request_id: String(input.request_id || ''),\n  tenant_id: String(input.tenant_id || ''),\n  conversation_id: String(input.conversation_id || ''),\n  reply: null,\n  intent: 'unknown',\n  language: 'unknown',\n  sentiment: 'neutral',\n  confidence: 0,\n  knowledge_gap: true,\n  grounding_accepted: false,\n  handoff_required: true,\n  handoff_reason: 'replyops_api_failure',\n  action: { type: 'none', status: 'not_required', requires_approval: false, request_id: null },\n  followup: { scheduled: false, job_id: null },\n  sources: [],\n  usage: {},\n  timings: {},\n  error\n} }];"
+      },
+      "id": "bd8e4b8d-01dd-489d-8be4-b86884958ac6",
+      "name": "Normalize Stable Response Contract",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1280, -100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "f7ea2370-0443-45d5-9a24-f5110aeb8d73",
+      "name": "Stable Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, -100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, request_id: $json.request_id || '', error: $json.error || 'invalid_payload', missing: $json.missing || [] } }}",
+        "options": { "responseCode": 400 }
+      },
+      "id": "82e55f4c-ec43-41af-b984-79f7d6bbdaea",
+      "name": "Invalid Envelope Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 140]
+    }
+  ],
+  "connections": {
+    "Receive Normalized Channel Envelope": {
+      "main": [[{ "node": "Validate Envelope And Required IDs", "type": "main", "index": 0 }]]
+    },
+    "Validate Envelope And Required IDs": {
+      "main": [[{ "node": "Envelope Valid", "type": "main", "index": 0 }]]
+    },
+    "Envelope Valid": {
+      "main": [
+        [{ "node": "Sign ReplyOps HMAC", "type": "main", "index": 0 }],
+        [{ "node": "Invalid Envelope Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Sign ReplyOps HMAC": {
+      "main": [[{ "node": "ReplyOps Runtime Orchestrator", "type": "main", "index": 0 }]]
+    },
+    "ReplyOps Runtime Orchestrator": {
+      "main": [[{ "node": "Normalize Stable Response Contract", "type": "main", "index": 0 }]]
+    },
+    "Normalize Stable Response Contract": {
+      "main": [[{ "node": "Stable Response", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "versionId": "replyops-dashboard-backed-v4",
+  "triggerCount": 1,
+  "active": true,
+  "tags": []
+}

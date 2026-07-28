@@ -1,36 +1,146 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ReplyOps AI
 
-## Getting Started
+ReplyOps AI is a multi-tenant customer operations dashboard for AI-assisted support, knowledge-grounded replies, human handoff, action approvals, follow-ups, analytics, and channel orchestration.
 
-First, run the development server:
+The product is built for small teams that need AI automation without losing control of live customer conversations. It keeps provider-live acceptance separate from internally verified software readiness.
+
+## Capabilities
+
+- ABUD-branded dark/light dashboard with English and Arabic shell localization.
+- Tenant-scoped businesses, assistant configuration, knowledge sources, catalog data, channel setup, inbox, handoffs, actions, follow-ups, analytics, audit logs, and system health.
+- Knowledge/RAG flow for manual text, files, chunking, embeddings, retrieval, and grounded response generation.
+- Telegram, Web Chat, and WhatsApp software paths with encrypted credential storage and webhook contracts.
+- n8n v4 runtime workflow contract with internal HMAC signing.
+- RBAC, tenant isolation checks, CSRF protection, rate limiting, SSRF-aware outbound action controls, audit logging, and secret redaction discipline.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  User["Dashboard user"] --> Next["Next.js dashboard"]
+  Customer["Customer channel"] --> Webhook["Provider webhook"]
+  Webhook --> Next
+  Next --> Postgres["PostgreSQL + pgvector"]
+  Next --> Gemini["Gemini models"]
+  Next --> N8N["n8n v4 workflow"]
+  N8N --> Internal["Internal HMAC API"]
+  Internal --> Next
+  Next --> Providers["Telegram / Web Chat / WhatsApp"]
+```
+
+## Stack
+
+- Next.js App Router
+- React
+- TypeScript
+- Prisma
+- PostgreSQL with pgvector
+- NextAuth
+- n8n
+- Gemini API
+- Node test runner
+- ESLint
+- GitHub Actions
+
+## Local Setup
+
+1. Copy placeholders:
+
+```bash
+cp .env.example .env
+```
+
+2. Replace local values in `.env`. Never use production secrets in local demos or public logs.
+
+3. Start PostgreSQL with pgvector on port `5433`.
+
+4. Install and prepare:
+
+```bash
+npm ci
+npx prisma generate
+npx prisma migrate deploy
+```
+
+5. Run:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`.env.example` groups placeholder values for:
 
-## Learn More
+- application URLs and ports
+- database
+- authentication
+- encryption
+- Gemini
+- Telegram
+- WhatsApp
+- n8n
+- internal HMAC
+- deployment
+- optional debug flags
 
-To learn more about Next.js, take a look at the following resources:
+Required provider-live values are issued by the relevant provider. Mocked software tests must not be reported as provider-live acceptance.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## n8n
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Workflow exports live in `n8n/`. The v4 runtime workflow calls protected internal APIs using HMAC headers and must not contain hardcoded tenant IDs, tokens, or provider secrets.
 
-## Deploy on Vercel
+## Testing
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npx prisma format
+npx prisma validate
+npx prisma generate
+npx prisma migrate status
+npm run typecheck
+npm run lint
+npm test
+npm run test:integration
+npm run test:e2e
+npm run build
+npm run secret-scan
+npm audit --omit=dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Provider-live checks, browser screenshots, production deployment verification, and restart persistence are tracked in `STATUS.md`.
+
+## Deployment
+
+Production deployment uses immutable release directories:
+
+- build a new release directory
+- link shared environment and uploads
+- run migrations and verification inside the release
+- precheck on a spare port
+- switch the `current` symlink only after checks pass
+- restart the single ReplyOps PM2 process
+
+Do not commit deployment archives, backups, dumps, upload contents, or environment files.
+
+## Security Model
+
+- Credentials are encrypted at rest.
+- Internal automation traffic is signed with HMAC and replay-protected.
+- RBAC limits platform-owner, tenant-owner, admin, agent, and viewer capabilities.
+- Tenant data is scoped by membership and tenant IDs.
+- Outbound HTTP actions require allowlisted domains and SSRF checks.
+- Audit logs record protected mutations without exposing secrets.
+
+See `SECURITY.md` for reporting and local safety checks.
+
+## Current Status
+
+`STATUS.md` is the operational source of truth for readiness percentages, verified checks, active release, rollback, external blockers, and exact manual actions.
+
+Known external acceptance remains separate from internal software completion, especially Telegram real-user sequences and WhatsApp provider-live validation.
+
+## Contributing
+
+Read `CONTRIBUTING.md`, run the quality gate, and keep PRs free of secrets, customer data, logs, dumps, and production backups.
