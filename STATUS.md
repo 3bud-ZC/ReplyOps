@@ -30,6 +30,12 @@ Percentages are not 100%. Remaining gaps are full authenticated visual QA, real 
 - Previous release: `/var/www/replyops/releases/20260728T151302Z`
 - Latest restricted backup: `/root/backups/replyops-20260728T151022Z`
 - Deployed source commit: `f67c3d1`
+- GitHub repository: `https://github.com/3bud-ZC/ReplyOps`
+- Final branch: `main`
+- Final branch commit: `b1d28a625b10`
+- Git tag: `v0.1.0` at `2c8b84e96cd3`
+- GitHub Release: `https://github.com/3bud-ZC/ReplyOps/releases/tag/v0.1.0`
+- GitHub CI: passed on run `30373908644`
 - PM2 process: `replyops`, online on port `3111`
 - Port `3110`: still owned by `flyrank-ai`
 - Spare precheck port `3112`: stopped after validation
@@ -48,6 +54,7 @@ Percentages are not 100%. Remaining gaps are full authenticated visual QA, real 
 - Created restricted backup and added all n8n workflow export to it.
 - Deployed immutable release `/var/www/replyops/releases/20260728T152053Z`.
 - Restarted ReplyOps PM2 and n8n Docker service, then reverified both.
+- Published `main` to GitHub, created tag `v0.1.0`, created GitHub Release, and verified CI passed after the CI database adjustment.
 
 ## Verified Checks
 
@@ -104,7 +111,7 @@ Production release `/var/www/replyops/releases/20260728T152053Z`:
 - WhatsApp provider-live acceptance remains blocked by Meta credentials.
 - Full embedded Web Chat visual acceptance remains open.
 - Full n8n v4 execution matrix remains open beyond invalid-envelope smoke and source contract tests.
-- GitHub CI uses `prisma db push` against an ephemeral service database because the legacy `initial_schema_sync` migration folder sorts after additive migrations on fresh databases. Production migration history is applied and up to date; clean-install migration rebaselining remains a packaging task.
+- GitHub CI passed using `prisma db push` against an ephemeral service database because the legacy `initial_schema_sync` migration folder sorts after additive migrations on fresh databases. Production migration history is applied and up to date; clean-install migration rebaselining remains a packaging task.
 - Notion documentation was not updated in this session.
 
 ## Safe Rollback
