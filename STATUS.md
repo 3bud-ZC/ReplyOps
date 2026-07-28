@@ -1,158 +1,135 @@
 # ReplyOps Production Status
 
-Updated: 2026-07-28 00:00 Africa/Cairo
+Updated: 2026-07-28 18:29 Africa/Cairo
 
-## 1. Current Verified Percentages
+## Completion
 
-- Overall completion: 93%
+- Overall completion: 94%
 - Internal software completion: 98%
-- External provider live acceptance: 58%
+- External provider live acceptance: 60%
 - Dashboard: 98%
-- Backend/runtime: 96%
-- Database and migrations: 92%
-- n8n v4: 86%
-- Telegram software: 92%
-- Telegram live acceptance: 60%
+- Backend/runtime: 97%
+- Database and migrations: 94%
+- n8n v4: 88%
+- Telegram software: 94%
+- Telegram live acceptance: 65%
 - Web Chat: 88%
 - WhatsApp software: 72%
+- WhatsApp live acceptance: 0% until Meta credentials are available
+- Actions: 92%
+- Follow-ups: 90%
+- Analytics: 86%
 
-Percentages are not 100%. Remaining gaps are real Telegram owner-user sequence, full embedded Web Chat visual acceptance, WhatsApp provider-live acceptance after Meta credentials, complete n8n v4 execution matrix, and dependency advisory remediation that needs framework/vendor review.
+Percentages are not 100%. Remaining gaps are full authenticated visual QA, real Telegram owner-user acceptance sequence, full embedded Web Chat visual acceptance, WhatsApp provider-live acceptance, full n8n v4 execution matrix, and dependency advisories that require framework/vendor updates.
 
-## 2. Current Production Infrastructure
+## Production
 
-- VPS: `167.99.157.6`
 - Dashboard: `https://replyops.abud.fun`
 - n8n: `https://botn8n.abud.fun`
-- PM2 process: `replyops`
-- ReplyOps internal port: `3111`
-- Port `3110`: still owned by `flyrank-ai`; not touched.
-- PostgreSQL database: `replyops_app`
-- PostgreSQL: local port `5433`
-- n8n: local port `5678`
+- Active release: `/var/www/replyops/releases/20260728T152053Z`
+- Previous release: `/var/www/replyops/releases/20260728T151302Z`
+- Latest restricted backup: `/root/backups/replyops-20260728T151022Z`
+- Deployed source commit: `f67c3d1`
+- PM2 process: `replyops`, online on port `3111`
+- Port `3110`: still owned by `flyrank-ai`
+- Spare precheck port `3112`: stopped after validation
+- PostgreSQL: accepting on local port `5433`
+- n8n: restarted and recovered to HTTPS `200`
+- Prisma migrations: 8 applied, schema up to date
 
-## 3. Active Release, Backup, Migrations
+## Completed In This Run
 
-- Active release: `/var/www/replyops/releases/20260727T095016Z`
-- Previous release: `/var/www/replyops/releases/20260727T015923Z`
-- Latest restricted backup: `/root/backups/replyops-20260727T122129Z`
-- Backup completed before this final launch run. `pg_restore -l`, v3/v4 workflow JSON parsing, PM2 dump presence, shared configuration copies, n8n Compose, and Telegram webhook metadata were validated without exposing protected values.
-- Finished Prisma migrations: 8
-- Migration state: `npx prisma migrate status` reports database schema is up to date.
+- Added public-launch repository scaffolding: product README, safe `.env.example`, security/contribution docs, changelog, code of conduct, GitHub Actions CI, Dependabot, issue templates, PR template, and `.gitattributes`.
+- Added `npm run secret-scan` and publication guards for env files, dumps, logs, archives, private keys, uploads, and likely committed credentials.
+- Localized dashboard shell labels for primary navigation, mobile navigation, account fallback, and role display.
+- Added tests for docs/CI presence, README product content, `.env.example` placeholder safety, CI gate coverage, dictionary parity, and localized shell labels.
+- Added immutable deploy helper and production auth diagnostics.
+- Reset owner bootstrap credential hash from server-side env, cleared stale owner login rate-limit buckets, and verified secure auth cookie behavior without printing secrets.
+- Created restricted backup and added all n8n workflow export to it.
+- Deployed immutable release `/var/www/replyops/releases/20260728T152053Z`.
+- Restarted ReplyOps PM2 and n8n Docker service, then reverified both.
 
-## 4. Completed This Turn
+## Verified Checks
 
-- Added public-launch repository scaffolding: `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`, `.env.example`, `.gitattributes`, GitHub Actions CI, Dependabot, issue templates, and PR template.
-- Added `npm run secret-scan` for git-visible publication candidates. The scanner blocks committed env files, secret-bearing local files, dumps, logs, archives, upload contents, private keys, and likely token/password assignments.
-- Replaced the starter Next.js README with product-specific ReplyOps documentation covering architecture, stack, local setup, environment placeholders, n8n, testing, deployment, security model, status tracking, and contribution rules.
-- Localized dashboard shell labels for mobile navigation, primary navigation, account fallback, and role display.
-- Added smoke tests for repository safety files, README content, safe `.env.example`, CI launch gates, dictionary key parity, and localized dashboard shell labels.
-- Created and validated restricted pre-change backup `/root/backups/replyops-20260727T122129Z`.
-- Consolidated `STATUS.md` and the n8n v3/v4 exports into the canonical application repository; exactly one project status file remains.
-- Re-ran the local launch baseline: clean install, Prisma format/validate/generate, typecheck, lint, 33 unit/smoke tests, 5 integration contract tests, 1 source-only route test, and the production build passed.
-- Local `prisma migrate status` could not connect because the configured local PostgreSQL endpoint on `localhost:5433` was unavailable; production migration state remains to be reverified directly.
-- Expanded n8n v4 from compact bridge to a normalized HMAC runtime orchestration workflow.
-- Imported and activated workflow `replyops-dashboard-backed-v4` in n8n.
-- Added stable internal response contract for channel runtime responses.
-- Added request IDs through `/api/internal/messages/incoming`.
-- Added runtime intent, language, sentiment, confidence, knowledge gap, grounding, handoff, action, follow-up, usage, timing, and source fields.
-- Added Gemini provider failure classification and controlled fallback behavior.
-- Added prompt-injection and discount-approval policy ordering to runtime contract tests.
-- Added dead-letter/system-event handling for Gemini degraded states.
-- Updated System Health to distinguish Gemini, Telegram, Web Chat, and WhatsApp configured/degraded/not-configured states.
-- Removed vulnerable `xlsx` parsing dependency and switched Excel parsing to `read-excel-file`.
-- Pinned Prisma to `7.8.0` and ESLint to `9.39.5` after compatibility validation.
-- Added direct `@emnapi` runtime dependencies so Linux `npm ci` matches the lockfile.
-
-## 5. Live Production Verification
-
-- Active symlink: `/var/www/replyops/current` -> `/var/www/replyops/releases/20260727T095016Z`.
-- Dashboard HTTP: `200`.
-- Login HTTP: `200`.
-- n8n HTTP: `200`.
-- PostgreSQL on `127.0.0.1:5433`: accepting connections.
-- Nginx config: `nginx -t` successful.
-- PM2: `replyops` online on `3111`.
-- Port `3110`: still `flyrank-ai`.
-- Spare validation port `3112`: stopped after precheck.
-- n8n containers: n8n and database containers running.
-- n8n workflow export verified ID/name/active state and `Stable Response` node in exported JSON.
-- n8n invalid-envelope smoke: POST `{}` to `/webhook/replyops/v4/runtime` returned `400` with `invalid_payload` and the expected missing field list.
-- Provider smoke: `GEMINI_API_KEY` present, embedding model returned dimension `768`, generation model `gemini-2.5-flash` returned `ok=true`, Telegram `getMe` returned `ok=true` for bot username `n8nanud_bot`.
-- Failed pre-switch release directories from this turn were cleaned; active release stayed `/var/www/replyops/releases/20260727T095016Z`.
-
-## 6. Automated Test Results
-
-Local `replyops-dashboard`:
+Local:
 
 - `npm ci`: passed
+- `npx prisma format`: passed
+- `npx prisma validate`: passed
 - `npx prisma generate`: passed
 - `npm run typecheck`: passed
 - `npm run lint`: passed
-- `npm test`: passed, 33 tests
+- `npm test`: passed, 39 tests
 - `npm run test:integration`: passed, 5 tests
-- `npm run test:e2e`: passed, 1 test
+- `npm run test:e2e`: passed, 1 source route test
 - `npm run build`: passed
+- `npm run secret-scan`: passed, 166 git-visible files checked
+- `npm audit --omit=dev`: 7 advisories, 0 critical
 
-Production release `/var/www/replyops/releases/20260727T095016Z`:
+Production release `/var/www/replyops/releases/20260728T152053Z`:
 
 - `npm ci`: passed
 - `npx prisma generate`: passed
 - `npx prisma migrate deploy`: passed, no pending migrations
 - `npm run typecheck`: passed
 - `npm run lint`: passed
-- `npm test`: passed, 33 tests
+- `npm test`: passed, 39 tests
 - `npm run test:integration`: passed, 5 tests
-- `npm run test:e2e`: passed, 1 test
+- `npm run test:e2e`: passed, 1 source route test
 - `npm run build`: passed
-- Pre-switch health on port `3112`: `200`
-- Post-deploy `npm test` from `/var/www/replyops/current`: passed, 33 tests
+- Pre-switch `http://127.0.0.1:3112/login`: `200`
+- Dashboard HTTPS: `200`
+- Login HTTPS: `200`
+- n8n HTTPS after restart: `200`
+- Auth smoke: valid owner login `200`, session cookie present, HttpOnly true, SameSite true, Secure true, invalid login `401`, anonymous dashboard `307`
+- Gemini smoke: API key present, embedding dimension `768`, generation `ok=true`
+- Telegram smoke: token present, `getMe ok=true`, bot username `n8nanud_bot`
+- n8n invalid envelope: `400 invalid_payload` with expected missing fields
+- PM2: `replyops` online; unrelated `flyrank-ai` online and untouched
 
-## 7. Security And Dependency Status
+## Security And Dependencies
 
-- No secrets were written to source or output.
-- Runtime responses expose structured error classes, not provider secrets.
-- n8n v4 signs requests with HMAC from environment values and does not hardcode tenant IDs or tokens.
-- `npm audit --omit=dev` currently reports 7 advisories: 4 moderate, 3 high, 0 critical.
-- Remaining production advisories are in Prisma dev/runtime transitive packages, Next/PostCSS/sharp, and next-auth. Available automated fixes imply framework/vendor version changes and were not applied blindly.
+- No secrets were printed or committed.
+- `.env`, `SECRETS.local.env`, dumps, logs, archives, uploads, and local agent/tool caches are ignored.
+- Public docs use placeholders only.
+- Remaining `npm audit --omit=dev` advisories: 4 moderate, 3 high, 0 critical.
+- Reported compatible automated fixes require `npm audit fix --force` and breaking framework/vendor changes involving Prisma/Next/PostCSS/sharp. Not applied blindly.
+- VPS Node is `20.20.2`; Prisma transitive package warns it prefers Node `>=22`, but install and all release gates passed.
 
-## 8. Not Reverified This Turn
+## Not Fully Verified
 
-- Authenticated 11-route visual QA was not rerun after release `20260727T095016Z`.
-- Lighthouse was not rerun after release `20260727T095016Z`.
-- Real Telegram user-originated message sequence was not executed.
-- WhatsApp provider-live acceptance remains blocked by missing Meta credentials.
-- Full embedded Web Chat visual acceptance remains unverified.
-- Full n8n v4 end-to-end execution matrix remains open.
+- Full authenticated browser visual QA across all dashboard routes, viewports, themes, and locales was not rerun in this session.
+- Complete Arabic coverage is improved at shell level but repository-wide page string localization is still incomplete.
+- Real Telegram user-originated acceptance sequence remains manual.
+- WhatsApp provider-live acceptance remains blocked by Meta credentials.
+- Full embedded Web Chat visual acceptance remains open.
+- Full n8n v4 execution matrix remains open beyond invalid-envelope smoke and source contract tests.
+- GitHub CI status, tag, release, and Notion documentation are pending until publication completes.
 
-## 9. Safe Rollback
+## Safe Rollback
 
 Application rollback:
 
 ```bash
-ln -sfnT /var/www/replyops/releases/20260727T015923Z /var/www/replyops/current
+ln -sfnT /var/www/replyops/releases/20260728T151302Z /var/www/replyops/current
 pm2 restart replyops --update-env
 pm2 save
 ```
 
-n8n rollback:
+n8n restart:
 
 ```bash
-docker exec n8n-n8n-1 n8n update:workflow --id=replyops-dashboard-backed-v4 --active=false
 cd /opt/n8n && docker compose restart n8n
 ```
 
-Backup restore sources:
+Backup restore source:
 
-- Full latest backup: `/root/backups/replyops-20260727T122129Z`
-- Database dump: `/root/backups/replyops-20260727T122129Z/replyops_app.dump`
-- Nginx config: `/root/backups/replyops-20260727T122129Z/replyops.nginx.conf`
-- PM2 dump: `/root/backups/replyops-20260727T122129Z/pm2-dump.pm2`
-- n8n workflows: `/root/backups/replyops-20260727T122129Z/n8n-workflows-all.json`
+- `/root/backups/replyops-20260728T151022Z`
 
-## 10. Remaining Work
+## Exact Manual Actions
 
-- Execute real Telegram account acceptance: `/start`, `/help`, shipping, unsupported product, discount, injection, `/human`.
-- Verify full embedded Web Chat on desktop and mobile.
-- Complete WhatsApp provider-live acceptance after Meta credentials are supplied.
-- Run complete n8n v4 matrix: valid envelope, invalid envelope, duplicate idempotency, provider retry/degraded path, dead-letter path, action approval, follow-up creation, and stable response schema.
-- Review dependency advisories against upstream Next, Prisma, sharp, PostCSS, and next-auth releases before another security hardening release.
+- Complete owner password change after bootstrap login.
+- Run Telegram real-user sequence: `/start`, `/help`, shipping, unsupported product, discount, prompt injection, `/human`.
+- Provide Meta WhatsApp credentials and run provider-live webhook/send acceptance.
+- Run full dashboard visual QA matrix: 1440x900, 1280x800, 1024x768, 768x1024, 430x932, 390x844 across English/Arabic and dark/light.
+- Run full n8n v4 matrix: valid envelope, duplicate idempotency, degraded provider path, dead letter, action approval, follow-up creation, stable response schema.
