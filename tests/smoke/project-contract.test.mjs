@@ -195,7 +195,7 @@ test("CI runs required launch gates", async () => {
     "npm ci",
     "npx prisma validate",
     "npx prisma generate",
-    "npx prisma db push --skip-generate",
+    "npx prisma db push",
     "npm run typecheck",
     "npm run lint",
     "npm test",
