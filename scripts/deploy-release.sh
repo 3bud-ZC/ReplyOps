@@ -23,6 +23,8 @@ npm run lint
 npm test
 npm run test:integration
 npm run build
+npm run secret-scan
+npm audit --omit=dev
 
 nohup npx next start -p 3112 -H 127.0.0.1 > "$PRECHECK_LOG" 2>&1 &
 echo $! > "$PRECHECK_PID"

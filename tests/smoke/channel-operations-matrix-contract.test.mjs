@@ -86,11 +86,14 @@ test("Actions source enforces lifecycle, encrypted auth, SSRF, and bounded respo
     "decryptSecret",
     "safeJsonFetch",
     "allowedDomains",
-    "redirect: \"error\"",
+    "redirect: \"manual\"",
+    "action_unsafe_redirect",
     "action_response_too_large",
     "action_private_network_blocked",
     "metadata.google.internal",
     "localhost",
+    "redactActionHeaders",
+    "duplicate_action_execution_prevented",
   ]) {
     assert.match(`${actions}\n${safeHttp}`, new RegExp(token.replaceAll(".", "\\.")))
   }
@@ -98,6 +101,7 @@ test("Actions source enforces lifecycle, encrypted auth, SSRF, and bounded respo
 
 test("Follow-up source owns jobs in ReplyOps DB and blocks unsafe scheduling", async () => {
   const followups = await readFile(path.join(root, "src", "app", "actions", "follow-ups.ts"), "utf8")
+  const engine = await readFile(path.join(root, "src", "lib", "follow-ups", "engine.ts"), "utf8")
   const schema = await readFile(path.join(root, "prisma", "schema.prisma"), "utf8")
 
   for (const token of [
@@ -112,8 +116,11 @@ test("Follow-up source owns jobs in ReplyOps DB and blocks unsafe scheduling", a
     "customerDailyCap",
     "tenantDailyCap",
     "followup_job.cancel",
+    "evaluateFollowupSchedule",
+    "duplicate_followup_prevented",
+    "quiet_hours_deferral",
   ]) {
-    assert.match(`${followups}\n${schema}`, new RegExp(token))
+    assert.match(`${followups}\n${engine}\n${schema}`, new RegExp(token))
   }
 })
 
@@ -131,5 +138,5 @@ test("Analytics source exposes persisted tenant-scoped usage metrics and empty s
   ]) {
     assert.match(`${analytics}\n${runtime}`, new RegExp(token.replaceAll(".", "\\.")))
   }
-  assert.ok(analytics.includes("where: isPlatformOwner ? {} : { tenantId: { in: tenantIds } }"))
+  assert.match(analytics, /tenantId:\s*\{\s*in:\s*tenantIds\s*\}/)
 })

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { Role } from "@prisma/client"
 import { auditLog, checkTenantAccess } from "@/lib/auth-utils"
 import prisma from "@/lib/prisma"
+import { evaluateFollowupSchedule } from "@/lib/follow-ups/engine"
 
 function readText(formData: FormData, key: string, fallback = "") {
   return String(formData.get(key) ?? fallback).trim()
@@ -49,10 +50,41 @@ export async function scheduleFollowupJob(formData: FormData) {
     include: { customer: true, messages: { orderBy: { createdAt: "desc" }, take: 1 }, handoffs: { where: { status: { in: ["open", "claimed"] } }, take: 1 } },
   })
   if (!conversation) throw new Error("conversation_not_found")
-  if (rule.consentRequired && !conversation.customer.marketingConsent) throw new Error("customer_consent_required")
-  if (conversation.customer.optedOutAt) throw new Error("customer_opted_out")
-  if (conversation.handoffs.length > 0) throw new Error("handoff_open")
-  const scheduledFor = new Date(Date.now() + rule.minimumDelay * 1000)
+  const duplicatePendingJob = await prisma.followupJob.findFirst({
+    where: { followupRuleId, conversationId, status: { in: ["pending", "retry"] } },
+  })
+  const limits = (rule.channelLimits ?? {}) as { customerDailyCap?: number; tenantDailyCap?: number }
+  const sentSince = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  const [currentCustomerSends, currentTenantSends] = await Promise.all([
+    prisma.followupJob.count({ where: { customerId: conversation.customerId, status: "sent", createdAt: { gte: sentSince } } }),
+    prisma.followupJob.count({ where: { followupRule: { tenantId: rule.tenantId }, status: "sent", createdAt: { gte: sentSince } } }),
+  ])
+  const decision = evaluateFollowupSchedule(
+    {
+      enabled: rule.enabled,
+      consentRequired: rule.consentRequired,
+      quietHoursStart: rule.quietHoursStart,
+      quietHoursEnd: rule.quietHoursEnd,
+      timezone: rule.timezone,
+      minimumDelay: rule.minimumDelay,
+      maximumAttempts: rule.maximumAttempts,
+      channelLimits: limits,
+    },
+    {
+      customerConsented: conversation.customer.marketingConsent,
+      customerOptedOut: Boolean(conversation.customer.optedOutAt),
+      activeHandoff: conversation.handoffs.length > 0,
+      conversationResolved: conversation.status === "resolved",
+      tenantDisabled: false,
+      customerRepliedAfterSchedule: false,
+      currentCustomerSends,
+      currentTenantSends,
+      duplicatePendingJob: Boolean(duplicatePendingJob),
+      now: new Date(),
+    },
+  )
+  if (!decision.allowed) throw new Error(decision.reason)
+  const scheduledFor = decision.scheduledFor ?? new Date(Date.now() + rule.minimumDelay * 1000)
   await prisma.followupJob.create({
     data: {
       followupRuleId,

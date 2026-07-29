@@ -36,6 +36,7 @@ test("dashboard has no visible under-construction pages", async () => {
 test("required dashboard product routes exist", async () => {
   const routes = [
     "products",
+    "onboarding",
     "services",
     "policies-faqs",
     "channels",
@@ -106,6 +107,7 @@ test("internal runtime-config route enforces HMAC verification", async () => {
 test("dashboard mutation actions exist for tenant assistant and knowledge workflows", async () => {
   const files = [
     ["src/app/actions/tenants.ts", ["createTenant", "updateTenant", "archiveTenant", "restoreTenant"]],
+    ["src/app/actions/onboarding.ts", ["saveOnboardingProgress", "skipOnboardingForExperiencedUser"]],
     ["src/app/actions/assistant.ts", ["saveAssistantConfiguration"]],
     ["src/app/actions/knowledge.ts", ["uploadKnowledgeDocument", "updateKnowledgeDocument", "reindexKnowledgeDocument", "archiveKnowledgeDocument", "restoreKnowledgeDocument"]],
   ]

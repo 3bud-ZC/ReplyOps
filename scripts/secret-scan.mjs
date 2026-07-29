@@ -1,10 +1,11 @@
 import { execFileSync } from "node:child_process"
-import { readFileSync } from "node:fs"
+import { readdirSync, readFileSync, statSync } from "node:fs"
 import path from "node:path"
 
 const root = process.cwd()
 const ignoredBasenames = new Set(["package-lock.json", "skills-lock.json"])
 const ignoredExtensions = new Set([".ico", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".pdf", ".zip", ".gz", ".dump"])
+const ignoredDirectories = new Set([".git", "node_modules", ".next", "test-results", "scratch", ".agents", ".claude", ".windsurf", ".playwright-cli"])
 const blockedPathPatterns = [
   /(^|[\\/])\.env($|[\\/])/,
   /(^|[\\/])\.env\.(?!example$)/,
@@ -32,10 +33,27 @@ function gitFiles(args) {
   }
 }
 
-const candidates = new Set([
+function walkFiles(dir, base = "") {
+  const files = []
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory() && ignoredDirectories.has(entry.name)) continue
+    const relative = base ? `${base}/${entry.name}` : entry.name
+    const full = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      files.push(...walkFiles(full, relative))
+    } else if (entry.isFile()) {
+      const stat = statSync(full)
+      if (stat.size <= 1024 * 1024) files.push(relative)
+    }
+  }
+  return files
+}
+
+const gitCandidates = [
   ...gitFiles(["ls-files", "--cached"]),
   ...gitFiles(["ls-files", "--others", "--exclude-standard"]),
-])
+]
+const candidates = new Set(gitCandidates.length ? gitCandidates : walkFiles(root))
 
 const findings = []
 
@@ -71,4 +89,4 @@ if (findings.length) {
   process.exit(1)
 }
 
-console.log(`Secret scan passed: ${candidates.size} git-visible files checked.`)
+console.log(`Secret scan passed: ${candidates.size} ${gitCandidates.length ? "git-visible" : "archive"} files checked.`)

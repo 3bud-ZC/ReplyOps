@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { Role } from "@prisma/client"
 import { auditLog, checkTenantAccess } from "@/lib/auth-utils"
 import prisma from "@/lib/prisma"
-import { safeJsonFetch } from "@/lib/security/safe-http"
+import { redactActionHeaders, safeJsonFetch } from "@/lib/security/safe-http"
 import { decryptSecret, encryptSecret } from "@/lib/crypto/encryption"
 
 function readText(formData: FormData, key: string, fallback = "") {
@@ -14,6 +14,11 @@ function readText(formData: FormData, key: string, fallback = "") {
 function readJson(value: string, fallback: unknown) {
   if (!value) return fallback
   return JSON.parse(value)
+}
+
+function validateActionInput(requiredFields: string[], input: Record<string, unknown>) {
+  const missing = requiredFields.filter((field) => input[field] === undefined || input[field] === null || String(input[field]).trim() === "")
+  if (missing.length) throw new Error(`missing_required_field:${missing.join(",")}`)
 }
 
 async function requireActionAdmin(tenantId: string) {
@@ -83,8 +88,14 @@ export async function approveActionRequest(formData: FormData) {
   if (!request) throw new Error("action_request_not_found")
   const { user } = await requireActionAdmin(request.actionDefinition.tenantId)
   await prisma.actionApproval.updateMany({ where: { actionRequestId }, data: { status: "approved" } })
-  await prisma.actionRequest.update({ where: { id: actionRequestId }, data: { status: "approved" } })
-  await auditLog(request.actionDefinition.tenantId, user.id, "action_request.approve", "ActionRequest", { actionRequestId })
+  await prisma.actionRequest.update({
+    where: { id: actionRequestId },
+    data: {
+      status: "approved",
+      executionLog: { ...((request.executionLog ?? {}) as any), approvedBy: user.id, approvedAt: new Date().toISOString() },
+    },
+  })
+  await auditLog(request.actionDefinition.tenantId, user.id, "action_request.approve", "ActionRequest", { actionRequestId, approvedBy: user.id })
   revalidatePath("/dashboard/actions")
 }
 
@@ -93,9 +104,16 @@ export async function rejectActionRequest(formData: FormData) {
   const request = await prisma.actionRequest.findUnique({ where: { id: actionRequestId }, include: { actionDefinition: true } })
   if (!request) throw new Error("action_request_not_found")
   const { user } = await requireActionAdmin(request.actionDefinition.tenantId)
+  const reason = readText(formData, "reason", "No reason supplied")
   await prisma.actionApproval.updateMany({ where: { actionRequestId }, data: { status: "rejected" } })
-  await prisma.actionRequest.update({ where: { id: actionRequestId }, data: { status: "rejected" } })
-  await auditLog(request.actionDefinition.tenantId, user.id, "action_request.reject", "ActionRequest", { actionRequestId })
+  await prisma.actionRequest.update({
+    where: { id: actionRequestId },
+    data: {
+      status: "rejected",
+      executionLog: { ...((request.executionLog ?? {}) as any), rejectedBy: user.id, rejectedAt: new Date().toISOString(), rejectionReason: reason },
+    },
+  })
+  await auditLog(request.actionDefinition.tenantId, user.id, "action_request.reject", "ActionRequest", { actionRequestId, rejectionReason: reason })
   revalidatePath("/dashboard/actions")
 }
 
@@ -105,9 +123,11 @@ export async function executeActionRequest(formData: FormData) {
   if (!request) throw new Error("action_request_not_found")
   const { user } = await checkTenantAccess(request.actionDefinition.tenantId, [Role.tenant_owner, Role.tenant_admin, Role.agent])
   if (!["approved", "failed"].includes(request.status)) throw new Error("action_not_approved")
-  await prisma.actionRequest.update({ where: { id: actionRequestId }, data: { status: "executing" } })
+  const claimed = await prisma.actionRequest.updateMany({ where: { id: actionRequestId, status: request.status }, data: { status: "executing" } })
+  if (claimed.count !== 1) throw new Error("duplicate_action_execution_prevented")
   try {
     const log = (request.executionLog ?? {}) as any
+    validateActionInput(request.actionDefinition.requiredFields, (log.input ?? {}) as Record<string, unknown>)
     const authHeaders =
       request.actionDefinition.encryptedAuthPayload && request.actionDefinition.authIv && request.actionDefinition.authTag
         ? JSON.parse(decryptSecret({
@@ -125,7 +145,16 @@ export async function executeActionRequest(formData: FormData) {
     })
     await prisma.actionRequest.update({
       where: { id: actionRequestId },
-      data: { status: response.ok ? "completed" : "failed", result: response, executionLog: { ...log, executedBy: user.id } },
+      data: {
+        status: response.ok ? "completed" : "failed",
+        result: response,
+        executionLog: {
+          ...log,
+          executedBy: user.id,
+          executedAt: new Date().toISOString(),
+          safeHeaders: redactActionHeaders({ ...((request.actionDefinition.headers ?? {}) as Record<string, string>), ...authHeaders }),
+        },
+      },
     })
     await auditLog(request.actionDefinition.tenantId, user.id, "action_request.execute", "ActionRequest", { actionRequestId, status: response.status })
   } catch (error) {

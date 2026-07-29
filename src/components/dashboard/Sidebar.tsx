@@ -65,6 +65,7 @@ const navGroups: NavGroup[] = [
     labelKey: "workspace",
     items: [
       { labelKey: "businesses", href: "/dashboard/businesses", icon: Building2, roles: setupRoles },
+      { labelKey: "onboarding", href: "/dashboard/onboarding", icon: ClipboardList, roles: setupRoles },
       { labelKey: "assistant", href: "/dashboard/assistant", icon: Bot, roles: setupRoles },
       { labelKey: "knowledge", href: "/dashboard/knowledge", icon: BookOpen, roles: setupRoles },
       {

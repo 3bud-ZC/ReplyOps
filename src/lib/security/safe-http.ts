@@ -33,18 +33,43 @@ export async function assertSafeHttpUrl(rawUrl: string, allowedDomains: string[]
   return url
 }
 
+export function redactActionHeaders(headers: Record<string, string>) {
+  return Object.fromEntries(
+    Object.entries(headers).map(([key, value]) => [
+      key,
+      /authorization|api[-_]?key|token|secret|cookie/i.test(key) ? "[redacted]" : value,
+    ]),
+  )
+}
+
+function redirectTarget(response: Response, currentUrl: URL) {
+  if (![301, 302, 303, 307, 308].includes(response.status)) return null
+  const location = response.headers.get("location")
+  if (!location) throw new Error("action_unsafe_redirect")
+  return new URL(location, currentUrl)
+}
+
 export async function safeJsonFetch(rawUrl: string, init: RequestInit & { timeoutMs?: number; allowedDomains?: string[] }) {
-  const url = await assertSafeHttpUrl(rawUrl, init.allowedDomains ?? [])
+  let url = await assertSafeHttpUrl(rawUrl, init.allowedDomains ?? [])
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), init.timeoutMs ?? 5000)
   const maxResponseBytes = 256 * 1024
   try {
-    const response = await fetch(url, { ...init, signal: controller.signal, redirect: "error" })
+    let response: Response | null = null
+    for (let redirectCount = 0; redirectCount <= 5; redirectCount += 1) {
+      response = await fetch(url, { ...init, signal: controller.signal, redirect: "manual" })
+      const nextUrl = redirectTarget(response, url)
+      if (!nextUrl) break
+      url = await assertSafeHttpUrl(nextUrl.toString(), init.allowedDomains ?? [])
+      if (redirectCount === 5) throw new Error("action_redirect_limit_exceeded")
+    }
+    if (!response) throw new Error("action_request_failed")
     const text = await response.text()
     if (Buffer.byteLength(text, "utf8") > maxResponseBytes) throw new Error("action_response_too_large")
     return {
       ok: response.ok,
       status: response.status,
+      finalUrl: url.origin + url.pathname,
       body: text ? JSON.parse(text) : null,
     }
   } finally {

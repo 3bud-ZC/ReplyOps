@@ -24,8 +24,20 @@ export function corsHeaders(origin: string | null) {
   }
 }
 
+export function blockedCorsHeaders() {
+  return {
+    "access-control-allow-origin": "null",
+    "access-control-allow-methods": "GET,POST,OPTIONS",
+    "access-control-allow-headers": "content-type,x-replyops-public-key",
+    "access-control-max-age": "600",
+    vary: "Origin",
+    "cache-control": "no-store",
+    "x-replyops-error": "origin_not_allowed",
+  }
+}
+
 export async function webChatOptionsResponse(connectionId: string, origin: string | null) {
   const resolved = await getWebChatConnection(connectionId, origin)
-  if (!resolved.ok) return resolved.response
+  if (!resolved.ok) return new NextResponse(null, { status: resolved.response.status, headers: blockedCorsHeaders() })
   return new NextResponse(null, { status: 204, headers: corsHeaders(origin) })
 }

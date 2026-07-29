@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { readChannelCredential, WhatsAppCredential } from "@/lib/channels/credentials"
 import { handleRuntimeInbound, markOutboundDelivered, markOutboundFailed } from "@/lib/channels/runtime"
-import { normalizeWhatsAppInbound, sendWhatsAppText, verifyWhatsAppSignature } from "@/lib/channels/whatsapp"
+import { normalizeWhatsAppDeliveryStatus, normalizeWhatsAppInbound, sendWhatsAppText, verifyWhatsAppSignature } from "@/lib/channels/whatsapp"
 
 export async function GET(request: NextRequest, context: { params: Promise<{ connectionId: string }> }) {
   const { connectionId } = await context.params
@@ -42,11 +42,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ co
   const change = body.entry?.[0]?.changes?.[0]?.value
   const statusUpdate = change?.statuses?.[0]
   if (statusUpdate?.id && statusUpdate?.status) {
-    const deliveryStatus = ["sent", "delivered", "read"].includes(statusUpdate.status)
-      ? "delivered"
-      : statusUpdate.status === "failed"
-        ? "failed"
-        : "stored"
+    const deliveryStatus = normalizeWhatsAppDeliveryStatus(statusUpdate.status)
     await prisma.$executeRaw`
       UPDATE "Message"
       SET "deliveryStatus" = ${deliveryStatus}, "providerPayload" = COALESCE("providerPayload", '{}'::jsonb) || ${JSON.stringify({

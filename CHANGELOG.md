@@ -12,6 +12,11 @@
 - Changed the n8n v4 ReplyOps call step to a bounded `fetch` Code node so workflow output uses parsed API JSON instead of raw response stream objects.
 - Updated runtime grounding behavior to use high-confidence retrieved Knowledge when the generator judge rejects an otherwise relevant source-backed answer.
 - Expanded WhatsApp software handling for media/contact/location inbound metadata, invalid JSON, template send validation, and 24-hour service-window primitives.
-- Added bounded response-size enforcement for custom Action HTTP connectors.
+- Added Web Chat embed customer profile fields, typing/close/focus affordances, blocked-origin safe CORS responses, and optional email persistence.
+- Added WhatsApp mocked-provider policy helpers for opt-in, opt-out, quiet hours, per-customer and tenant limits, approved templates, service windows, delivery status transitions, and redacted credential summaries.
+- Added atomic Action execution claiming, required-field validation, approval/rejection identity and timestamps, redacted auth logging, bounded response-size enforcement, and redirected final-host SSRF validation for custom Action HTTP connectors.
+- Added Follow-up schedule evaluation for disabled rules, consent, opt-out, handoff, resolved conversations, duplicate jobs, quiet hours, limits, retry delay, and lock-expiry claim semantics.
+- Added Analytics calculation helpers and Dashboard metrics for conversations, handoffs, knowledge gaps, delivery failures, token totals, and dead letters.
+- Added tenant-scoped Onboarding progress route with validation, resume, skip, completion, and replay-tour state.
 
 Provider-live acceptance remains tracked separately in `STATUS.md`.

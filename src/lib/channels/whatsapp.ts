@@ -79,6 +79,62 @@ export function isInsideWhatsAppServiceWindow(lastInboundAt: Date | null, now: D
   return now.getTime() - lastInboundAt.getTime() <= 24 * 60 * 60 * 1000
 }
 
+export type WhatsAppSendPolicy = {
+  optedOut?: boolean
+  optInRequired?: boolean
+  optedIn?: boolean
+  quietHoursActive?: boolean
+  customerDailyCount?: number
+  customerDailyLimit?: number
+  tenantDailyCount?: number
+  tenantDailyLimit?: number
+  lastInboundAt?: Date | null
+  now?: Date
+  approvedTemplates?: string[]
+}
+
+export type WhatsAppOutboundRequest =
+  | { type: "text"; text: string; contextMessageId?: string }
+  | { type: "template"; template: { name: string; language: string; parameters?: string[] }; contextMessageId?: string }
+
+export function redactWhatsAppCredential(credential: WhatsAppCredential) {
+  return {
+    appId: credential.appId,
+    phoneNumberId: credential.phoneNumberId,
+    businessAccountId: credential.businessAccountId,
+    graphApiVersion: credential.graphApiVersion,
+    appSecret: "[redacted]",
+    accessToken: "[redacted]",
+    verifyToken: "[redacted]",
+  }
+}
+
+export function normalizeWhatsAppDeliveryStatus(status: string) {
+  if (status === "read") return "read"
+  if (status === "delivered") return "delivered"
+  if (status === "sent") return "sent"
+  if (status === "failed") return "failed"
+  return "stored"
+}
+
+export function evaluateWhatsAppSendPolicy(request: WhatsAppOutboundRequest, policy: WhatsAppSendPolicy) {
+  if (policy.optedOut) return { allowed: false, reason: "customer_opted_out" }
+  if (policy.optInRequired && !policy.optedIn) return { allowed: false, reason: "customer_opt_in_required" }
+  if (policy.quietHoursActive) return { allowed: false, reason: "quiet_hours_delay" }
+  if ((policy.customerDailyCount ?? 0) >= (policy.customerDailyLimit ?? Number.POSITIVE_INFINITY)) {
+    return { allowed: false, reason: "customer_limit_exceeded" }
+  }
+  if ((policy.tenantDailyCount ?? 0) >= (policy.tenantDailyLimit ?? Number.POSITIVE_INFINITY)) {
+    return { allowed: false, reason: "tenant_limit_exceeded" }
+  }
+  const insideServiceWindow = isInsideWhatsAppServiceWindow(policy.lastInboundAt ?? null, policy.now)
+  if (request.type === "text" && !insideServiceWindow) return { allowed: false, reason: "template_required_outside_24h_window" }
+  if (request.type === "template" && policy.approvedTemplates && !policy.approvedTemplates.includes(request.template.name)) {
+    return { allowed: false, reason: "template_not_approved" }
+  }
+  return { allowed: true, reason: "allowed" }
+}
+
 export async function sendWhatsAppText(credential: WhatsAppCredential, to: string, text: string) {
   const response = await fetch(`${graphBase(credential.graphApiVersion)}/${encodeURIComponent(credential.phoneNumberId)}/messages`, {
     method: "POST",
@@ -129,4 +185,16 @@ export async function sendWhatsAppTemplate(
   const data = await response.json()
   if (!response.ok) throw new Error("whatsapp_template_send_failed")
   return data
+}
+
+export async function sendWhatsAppWithPolicy(
+  credential: WhatsAppCredential,
+  to: string,
+  request: WhatsAppOutboundRequest,
+  policy: WhatsAppSendPolicy,
+) {
+  const decision = evaluateWhatsAppSendPolicy(request, policy)
+  if (!decision.allowed) throw new Error(decision.reason)
+  if (request.type === "template") return sendWhatsAppTemplate(credential, to, request.template)
+  return sendWhatsAppText(credential, to, request.text)
 }
