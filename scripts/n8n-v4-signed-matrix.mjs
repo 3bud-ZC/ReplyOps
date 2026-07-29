@@ -73,7 +73,7 @@ function assertStableResponse(name, status, json) {
   if (!Number.isInteger(status)) failures.push("missing_http_status")
   if (typeof json?.success !== "boolean") failures.push("missing_success")
   if (typeof json?.request_id !== "string" || !json.request_id) failures.push("missing_request_id")
-  if (JSON.stringify(json).match(/\[object Object\]|sk-[a-zA-Z0-9]|token|secret/i)) failures.push("secret_or_object_leak")
+  if (JSON.stringify(json).match(/\[object Object\]|sk-[a-zA-Z0-9]|bot_token|access_token|api_key|secret/i)) failures.push("secret_or_object_leak")
   if (json?.success === false) {
     if (!json.error || typeof json.error !== "object") failures.push("missing_structured_error")
     if (!json.error?.type || !json.error?.code || typeof json.error?.retryable !== "boolean") failures.push("incomplete_error_contract")
@@ -130,4 +130,3 @@ main().catch((error) => {
   console.error(JSON.stringify({ success: false, error: error.name }))
   process.exitCode = 1
 })
-

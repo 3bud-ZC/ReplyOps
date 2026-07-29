@@ -73,7 +73,7 @@
         "contentType": "raw",
         "rawContentType": "application/json",
         "body": "={{$json.body}}",
-        "options": { "timeout": 30000 }
+        "options": { "response": { "response": { "neverError": true, "responseFormat": "json" } }, "timeout": 30000 }
       },
       "id": "40cd475d-62e7-40d7-93db-915a47d06787",
       "name": "ReplyOps Runtime Orchestrator",
@@ -107,7 +107,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { success: false, request_id: $json.request_id || '', error: $json.error || 'invalid_payload', missing: $json.missing || [] } }}",
+        "responseBody": "={{ { success: false, request_id: $json.request_id || '', error: { type: $json.error || 'invalid_payload', code: 'INVALID_PAYLOAD', message: 'The request payload is missing required fields or is malformed.', retryable: false, details: { missing: $json.missing || [] } } } }}",
         "options": { "responseCode": 400 }
       },
       "id": "82e55f4c-ec43-41af-b984-79f7d6bbdaea",
