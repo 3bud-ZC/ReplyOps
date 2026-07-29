@@ -74,6 +74,8 @@ test("Gemini provider errors are mapped without leaking credentials", async () =
 
   assert.match(generator, /retry-after/)
   assert.match(runtime, /retrievalOnlyAnswer/)
+  assert.match(runtime, /generated\.grounded \|\| canUseRetrievalOnly/)
+  assert.match(runtime, /retrievalOnlyAnswer\(input\.content, results\[0\]\)/)
   assert.match(runtime, /eventType: "provider_failure"/)
   assert.match(runtime, /Gemini provider degraded/)
   assert.match(health, /Credential presence only; no secret exposed\./)

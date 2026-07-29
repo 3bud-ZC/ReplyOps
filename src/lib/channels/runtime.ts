@@ -486,8 +486,13 @@ export async function handleRuntimeInbound(input: RuntimeInbound) {
     try {
       const generationStartedAt = Date.now()
       const generated = await generateResponse(input.content, results)
-      grounded = generated.grounded
-      answer = generated.grounded ? generated.answer : fallbackAnswer(input.content)
+      const canUseRetrievalOnly = Number(results[0]?.score ?? 0) >= 0.3
+      grounded = generated.grounded || canUseRetrievalOnly
+      answer = generated.grounded
+        ? generated.answer
+        : canUseRetrievalOnly
+          ? retrievalOnlyAnswer(input.content, results[0])
+          : fallbackAnswer(input.content)
       providerState = "ok"
       usage = generated.usage
       usage.generation_ms = Date.now() - generationStartedAt
