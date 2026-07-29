@@ -76,8 +76,22 @@ function assertStableResponse(name, status, json) {
   if (JSON.stringify(json).match(/\[object Object\]|sk-[a-zA-Z0-9]|bot_token|access_token|api_key|secret/i)) failures.push("secret_or_object_leak")
   if (json?.success === false) {
     if (!json.error || typeof json.error !== "object") failures.push("missing_structured_error")
-    if (!json.error?.type || !json.error?.code || typeof json.error?.retryable !== "boolean") failures.push("incomplete_error_contract")
+      if (!json.error?.type || !json.error?.code || typeof json.error?.retryable !== "boolean") failures.push("incomplete_error_contract")
   }
+  if (name === "invalid payload" && (status !== 400 || json?.error?.type !== "invalid_payload")) failures.push("invalid_payload_contract_failed")
+  if (name === "valid English grounded request" || name === "valid Arabic grounded request") {
+    if (status !== 200 || json?.success !== true) failures.push("grounded_request_failed")
+    if (typeof json?.tenant_id !== "string" || json.tenant_id !== tenantId) failures.push("grounded_tenant_mismatch")
+    if (typeof json?.conversation_id !== "string" || !json.conversation_id) failures.push("grounded_conversation_missing")
+    if (typeof json?.reply !== "string" || !json.reply.trim()) failures.push("grounded_reply_missing")
+  }
+  if (name === "duplicate idempotency key replay" && json?.deduplicated !== true) failures.push("duplicate_replay_not_deduplicated")
+  if (name === "invalid tenant") {
+    if (json?.success !== false || json?.error?.type !== "invalid_tenant") failures.push("invalid_tenant_contract_failed")
+    if (json?.request_id !== `req_${customerPrefix}-invalid-tenant`) failures.push("invalid_tenant_request_id_not_preserved")
+  }
+  if (name === "prompt injection" && (json?.success !== true || json?.intent !== "prompt_injection")) failures.push("prompt_injection_not_rejected")
+  if (name === "Human Handoff" && (json?.success !== true || json?.handoff_required !== true)) failures.push("handoff_not_created")
   return { name, status, pass: failures.length === 0, failures, response: json }
 }
 

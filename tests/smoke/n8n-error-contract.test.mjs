@@ -51,6 +51,39 @@ test("n8n normalizer preserves structured invalid tenant errors", async () => {
   assert.ok(!JSON.stringify(response).includes("[object Object]"))
 })
 
+test("n8n normalizer unwraps HTTP node response bodies", async () => {
+  const success = await normalize({
+    statusCode: 200,
+    body: {
+      success: true,
+      request_id: "req_ok",
+      tenant_id: "tenant_1",
+      conversation_id: "conversation_1",
+    },
+  })
+  assert.equal(success.success, true)
+  assert.equal(success.request_id, "req_ok")
+  assert.equal(success.conversation_id, "conversation_1")
+
+  const failure = await normalize({
+    statusCode: 404,
+    body: {
+      request_id: "req_invalid_tenant",
+      tenant_id: "tenant_missing",
+      error: {
+        type: "invalid_tenant",
+        code: "INVALID_TENANT",
+        message: "Tenant was not found or is unavailable.",
+        retryable: false,
+      },
+    },
+  })
+  assert.equal(failure.success, false)
+  assert.equal(failure.request_id, "req_invalid_tenant")
+  assert.equal(failure.error.type, "invalid_tenant")
+  assert.equal(failure.error.retryable, false)
+})
+
 test("n8n normalizer maps string and missing errors without object stringification", async () => {
   const stringError = await normalize({ request_id: "req_string", error: "missing_scope" })
   assert.equal(stringError.request_id, "req_string")
@@ -125,5 +158,8 @@ test("n8n signed matrix harness covers all required launch cases without secret 
   }
   assert.match(harness, /signInternal/)
   assert.match(harness, /secret_or_object_leak/)
+  assert.match(harness, /grounded_request_failed/)
+  assert.match(harness, /duplicate_replay_not_deduplicated/)
+  assert.match(harness, /invalid_tenant_contract_failed/)
   assert.ok(!/console\.log\(.*signature|console\.log\(.*secret/i.test(harness))
 })

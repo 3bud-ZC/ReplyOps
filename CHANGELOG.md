@@ -8,7 +8,7 @@
 - Added typed dashboard UI localization coverage, strict source localization audit, RTL runtime sync, page guide rendering, and a 456-case authenticated Playwright visual matrix.
 - Updated Prisma to 7.9.1 and pinned patched `postcss`/`sharp` transitive versions through npm overrides; production audit is clean with `npm audit --omit=dev`.
 - Added structured internal/n8n error normalization so invalid tenant and upstream failure responses preserve request IDs and never collapse to `[object Object]`.
-- Added the reusable n8n v4 signed matrix harness and smoke coverage for all 33 required launch cases without printing signatures or secrets.
+- Added the reusable n8n v4 signed matrix harness and smoke coverage for all 33 required launch cases without printing signatures or secrets, including semantic assertions for valid grounded, duplicate replay, invalid tenant, prompt-injection, and handoff paths.
 - Expanded WhatsApp software handling for media/contact/location inbound metadata, invalid JSON, template send validation, and 24-hour service-window primitives.
 - Added bounded response-size enforcement for custom Action HTTP connectors.
 
