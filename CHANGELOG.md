@@ -18,5 +18,8 @@
 - Added Follow-up schedule evaluation for disabled rules, consent, opt-out, handoff, resolved conversations, duplicate jobs, quiet hours, limits, retry delay, and lock-expiry claim semantics.
 - Added Analytics calculation helpers and Dashboard metrics for conversations, handoffs, knowledge gaps, delivery failures, token totals, and dead letters.
 - Added tenant-scoped Onboarding progress route with validation, resume, skip, completion, and replay-tour state.
+- Added production final-acceptance harness for QA-prefixed DB-seeded Web Chat, WhatsApp mock-provider, Actions, Follow-ups, Analytics, Onboarding, Telegram replay, and cleanup matrices.
+- Added optional WhatsApp mock Graph base URL support for controlled software acceptance while keeping real Meta Graph API as the default.
+- Updated archive secret scanning and release ignores so deployment-created symlinks and local release tarballs do not create false positives.
 
 Provider-live acceptance remains tracked separately in `STATUS.md`.

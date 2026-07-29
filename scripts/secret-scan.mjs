@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process"
-import { readdirSync, readFileSync, statSync } from "node:fs"
+import { lstatSync, readdirSync, readFileSync, statSync } from "node:fs"
 import path from "node:path"
 
 const root = process.cwd()
@@ -63,6 +63,11 @@ for (const file of candidates) {
   const ext = path.extname(normalized).toLowerCase()
   if (ignoredBasenames.has(basename) || ignoredExtensions.has(ext)) continue
   if (basename === ".env.example") continue
+  if (normalized === "uploads") {
+    try {
+      if (lstatSync(path.join(root, file)).isSymbolicLink()) continue
+    } catch {}
+  }
   if (blockedPathPatterns.some((pattern) => pattern.test(normalized))) {
     findings.push(`${file}: blocked publication path`)
     continue

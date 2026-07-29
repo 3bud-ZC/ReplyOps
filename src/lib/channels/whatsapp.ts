@@ -14,13 +14,18 @@ type WhatsAppInboundMessage = {
   contacts?: Array<Record<string, unknown>>
 }
 
-export function graphBase(version: string) {
+export function graphBase(version: string, overrideBaseUrl?: string) {
+  if (overrideBaseUrl) {
+    const url = new URL(overrideBaseUrl)
+    if (!["http:", "https:"].includes(url.protocol)) throw new Error("invalid_graph_base_url")
+    return url.toString().replace(/\/$/, "")
+  }
   if (!/^v\d+\.\d+$/.test(version)) throw new Error("invalid_graph_version")
   return `https://graph.facebook.com/${version}`
 }
 
 export async function validateWhatsAppCredential(credential: WhatsAppCredential) {
-  const url = `${graphBase(credential.graphApiVersion)}/${encodeURIComponent(credential.phoneNumberId)}?fields=id,display_phone_number,verified_name`
+  const url = `${graphBase(credential.graphApiVersion, credential.graphBaseUrl)}/${encodeURIComponent(credential.phoneNumberId)}?fields=id,display_phone_number,verified_name`
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${credential.accessToken}` },
     cache: "no-store",
@@ -103,6 +108,7 @@ export function redactWhatsAppCredential(credential: WhatsAppCredential) {
     phoneNumberId: credential.phoneNumberId,
     businessAccountId: credential.businessAccountId,
     graphApiVersion: credential.graphApiVersion,
+    graphBaseUrl: credential.graphBaseUrl ? "[qa-mock]" : undefined,
     appSecret: "[redacted]",
     accessToken: "[redacted]",
     verifyToken: "[redacted]",
@@ -136,7 +142,7 @@ export function evaluateWhatsAppSendPolicy(request: WhatsAppOutboundRequest, pol
 }
 
 export async function sendWhatsAppText(credential: WhatsAppCredential, to: string, text: string) {
-  const response = await fetch(`${graphBase(credential.graphApiVersion)}/${encodeURIComponent(credential.phoneNumberId)}/messages`, {
+  const response = await fetch(`${graphBase(credential.graphApiVersion, credential.graphBaseUrl)}/${encodeURIComponent(credential.phoneNumberId)}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${credential.accessToken}`,
@@ -162,7 +168,7 @@ export async function sendWhatsAppTemplate(
 ) {
   if (!/^[a-z0-9_]+$/i.test(template.name)) throw new Error("invalid_template")
   if (!/^[a-z]{2}(?:_[A-Z]{2})?$/.test(template.language)) throw new Error("invalid_template_language")
-  const response = await fetch(`${graphBase(credential.graphApiVersion)}/${encodeURIComponent(credential.phoneNumberId)}/messages`, {
+  const response = await fetch(`${graphBase(credential.graphApiVersion, credential.graphBaseUrl)}/${encodeURIComponent(credential.phoneNumberId)}/messages`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${credential.accessToken}`,

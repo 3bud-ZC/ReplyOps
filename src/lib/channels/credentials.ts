@@ -17,6 +17,7 @@ export type WhatsAppCredential = {
   businessAccountId: string
   verifyToken: string
   graphApiVersion: string
+  graphBaseUrl?: string
 }
 
 export type WebChatCredential = {

@@ -13,6 +13,7 @@ The product is built for small teams that need AI automation without losing cont
 - Telegram, Web Chat, and WhatsApp software paths with encrypted credential storage and webhook contracts.
 - Web Chat embed behavior includes origin allowlist enforcement, blocked-origin safe errors, optional customer profile persistence, rate limiting, keyboard/focus labels, and reconnectable anonymous sessions.
 - WhatsApp software contracts include signed raw-body webhook validation, inbound media metadata, delivery callbacks, 24-hour service-window and approved-template controls, opt-in/opt-out, quiet-hours and limit policy helpers, and credential redaction.
+- Production final-acceptance harness creates QA-prefixed temporary tenants and records, runs Web Chat, WhatsApp mock-provider, Actions, Follow-ups, Analytics, Onboarding, and Telegram replay matrices, then proves cleanup.
 - n8n v4 runtime workflow contract with internal HMAC signing and structured failure normalization.
 - RBAC, tenant isolation checks, CSRF protection, rate limiting, SSRF-aware outbound action controls, redirected final-host validation, bounded connector responses, audit logging, and secret redaction discipline.
 
@@ -126,6 +127,14 @@ npm audit --omit=dev
 The Playwright suite includes an authenticated dashboard route matrix across 19 routes, 6 viewports, English/Arabic, and dark/light modes. It writes sanitized screenshots and `scratch/visual-qa/dashboard-route-matrix.json`; `scratch/` remains ignored.
 
 The smoke suite includes deterministic source-contract matrices for Web Chat embed behavior, WhatsApp mocked-provider controls, Action approval/SSRF controls, Follow-up scheduling and claim logic, Analytics calculations, and Onboarding progress state. Provider-live checks still require real provider evidence.
+
+Production acceptance harness:
+
+```bash
+node scripts/production-final-acceptance.mjs
+```
+
+Run it only against an intended environment with a valid `DATABASE_URL` and `REPLYOPS_CREDENTIALS_ENCRYPTION_KEY`. Results are sanitized and written outside committed source by default.
 
 Provider-live checks, browser screenshots, production deployment verification, and restart persistence are tracked in `STATUS.md`.
 
