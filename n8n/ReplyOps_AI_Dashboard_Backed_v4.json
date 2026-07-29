@@ -67,7 +67,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json || {};\nconst controller = new AbortController();\nconst timeout = setTimeout(() => controller.abort(), 30000);\ntry {\n  const response = await fetch(input.url, {\n    method: 'POST',\n    headers: input.headers || {},\n    body: input.body,\n    signal: controller.signal,\n  });\n  let payload;\n  const text = await response.text();\n  try {\n    payload = text ? JSON.parse(text) : {};\n  } catch {\n    payload = { success: false, request_id: input.request_id, error: { type: 'invalid_json', code: 'INVALID_JSON', message: 'ReplyOps returned invalid JSON.', retryable: false, details: {} } };\n  }\n  if (payload && typeof payload === 'object') {\n    payload.statusCode = response.status;\n    return [{ json: payload }];\n  }\n  return [{ json: { success: false, request_id: input.request_id, statusCode: response.status, error: { type: 'replyops_api_failure', code: 'REPLYOPS_API_FAILURE', message: 'ReplyOps could not complete the request.', retryable: response.status >= 500 || response.status === 429, details: {} } } }];\n} catch (error) {\n  const type = error && error.name === 'AbortError' ? 'replyops_api_timeout' : 'replyops_api_failure';\n  return [{ json: { success: false, request_id: input.request_id, error: { type, code: type.toUpperCase(), message: 'ReplyOps could not complete the request.', retryable: true, details: {} } } }];\n} finally {\n  clearTimeout(timeout);\n}"
+        "jsCode": "const input = $input.first().json || {};\ntry {\n  const responseText = await this.helpers.httpRequest({\n    method: 'POST',\n    url: input.url,\n    headers: input.headers || {},\n    body: input.body,\n    json: false,\n    timeout: 30000,\n  });\n  let payload;\n  try {\n    payload = typeof responseText === 'string' && responseText ? JSON.parse(responseText) : responseText;\n  } catch {\n    payload = { success: false, request_id: input.request_id, error: { type: 'invalid_json', code: 'INVALID_JSON', message: 'ReplyOps returned invalid JSON.', retryable: false, details: {} } };\n  }\n  if (payload && typeof payload === 'object') {\n    return [{ json: payload }];\n  }\n  return [{ json: { success: false, request_id: input.request_id, error: { type: 'replyops_api_failure', code: 'REPLYOPS_API_FAILURE', message: 'ReplyOps could not complete the request.', retryable: true, details: {} } } }];\n} catch (error) {\n  const status = Number(error && error.response && (error.response.status || error.response.statusCode) || error && error.statusCode || 0);\n  if (status === 404 || String(error && error.message || '').includes('status code 404')) {\n    return [{ json: { success: false, request_id: input.request_id, error: { type: 'invalid_tenant', code: 'INVALID_TENANT', message: 'Tenant was not found or is unavailable.', retryable: false, details: {} } } }];\n  }\n  return [{ json: { success: false, request_id: input.request_id, error: { type: 'replyops_api_failure', code: 'REPLYOPS_API_FAILURE', message: 'ReplyOps could not complete the request.', retryable: true, details: {} } } }];\n}"
       },
       "id": "40cd475d-62e7-40d7-93db-915a47d06787",
       "name": "ReplyOps Runtime Orchestrator",
@@ -95,7 +95,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{$json}}",
+        "responseBody": "={{ JSON.stringify($json) }}",
         "options": {}
       },
       "id": "f7ea2370-0443-45d5-9a24-f5110aeb8d73",

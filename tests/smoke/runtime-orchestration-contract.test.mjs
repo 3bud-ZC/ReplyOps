@@ -129,6 +129,6 @@ test("n8n v4 workflow validates envelopes and delegates to ReplyOps source of tr
   assert.doesNotMatch(workflowText, /botToken|accessToken|GEMINI_API_KEY/)
   assert.match(workflowText, /x-replyops-signature/)
   assert.match(workflowText, /idempotency_key/)
-  assert.match(workflowText, /await fetch/)
-  assert.match(workflowText, /statusCode = response\.status/)
+  assert.match(workflowText, /this\.helpers\.httpRequest/)
+  assert.match(workflowText, /JSON\.stringify\(\$json\)/)
 })
