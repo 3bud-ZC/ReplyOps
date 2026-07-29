@@ -67,64 +67,17 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{$json.url}}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "content-type",
-              "value": "={{$json.headers['content-type']}}"
-            },
-            {
-              "name": "x-request-id",
-              "value": "={{$json.headers['x-request-id']}}"
-            },
-            {
-              "name": "x-replyops-key-id",
-              "value": "={{$json.headers['x-replyops-key-id']}}"
-            },
-            {
-              "name": "x-replyops-timestamp",
-              "value": "={{$json.headers['x-replyops-timestamp']}}"
-            },
-            {
-              "name": "x-replyops-nonce",
-              "value": "={{$json.headers['x-replyops-nonce']}}"
-            },
-            {
-              "name": "x-replyops-body-sha256",
-              "value": "={{$json.headers['x-replyops-body-sha256']}}"
-            },
-            {
-              "name": "x-replyops-signature",
-              "value": "={{$json.headers['x-replyops-signature']}}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "raw",
-        "rawContentType": "application/json",
-        "body": "={{$json.body}}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true,
-              "responseFormat": "json"
-            }
-          },
-          "timeout": 30000
-        }
+        "jsCode": "const input = $input.first().json || {};\nconst controller = new AbortController();\nconst timeout = setTimeout(() => controller.abort(), 30000);\ntry {\n  const response = await fetch(input.url, {\n    method: 'POST',\n    headers: input.headers || {},\n    body: input.body,\n    signal: controller.signal,\n  });\n  let payload;\n  const text = await response.text();\n  try {\n    payload = text ? JSON.parse(text) : {};\n  } catch {\n    payload = { success: false, request_id: input.request_id, error: { type: 'invalid_json', code: 'INVALID_JSON', message: 'ReplyOps returned invalid JSON.', retryable: false, details: {} } };\n  }\n  if (payload && typeof payload === 'object') {\n    payload.statusCode = response.status;\n    return [{ json: payload }];\n  }\n  return [{ json: { success: false, request_id: input.request_id, statusCode: response.status, error: { type: 'replyops_api_failure', code: 'REPLYOPS_API_FAILURE', message: 'ReplyOps could not complete the request.', retryable: response.status >= 500 || response.status === 429, details: {} } } }];\n} catch (error) {\n  const type = error && error.name === 'AbortError' ? 'replyops_api_timeout' : 'replyops_api_failure';\n  return [{ json: { success: false, request_id: input.request_id, error: { type, code: type.toUpperCase(), message: 'ReplyOps could not complete the request.', retryable: true, details: {} } } }];\n} finally {\n  clearTimeout(timeout);\n}"
       },
       "id": "40cd475d-62e7-40d7-93db-915a47d06787",
       "name": "ReplyOps Runtime Orchestrator",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         1020,
         -100
       ],
-      "continueOnFail": true
+      "continueOnFail": false
     },
     {
       "parameters": {
