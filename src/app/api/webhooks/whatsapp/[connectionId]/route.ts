@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { readChannelCredential, WhatsAppCredential } from "@/lib/channels/credentials"
 import { handleRuntimeInbound, markOutboundDelivered, markOutboundFailed } from "@/lib/channels/runtime"
-import { sendWhatsAppText, verifyWhatsAppSignature } from "@/lib/channels/whatsapp"
+import { normalizeWhatsAppInbound, sendWhatsAppText, verifyWhatsAppSignature } from "@/lib/channels/whatsapp"
 
 export async function GET(request: NextRequest, context: { params: Promise<{ connectionId: string }> }) {
   const { connectionId } = await context.params
@@ -33,7 +33,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ co
     return NextResponse.json({ success: false, error: "invalid_signature" }, { status: 401 })
   }
 
-  const body = JSON.parse(bodyText || "{}")
+  let body: any
+  try {
+    body = JSON.parse(bodyText || "{}")
+  } catch {
+    return NextResponse.json({ success: false, error: "invalid_json" }, { status: 400 })
+  }
   const change = body.entry?.[0]?.changes?.[0]?.value
   const statusUpdate = change?.statuses?.[0]
   if (statusUpdate?.id && statusUpdate?.status) {
@@ -76,7 +81,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ co
 
   const message = change?.messages?.[0]
   const contact = change?.contacts?.[0]
-  const text = String(message?.text?.body ?? "").trim()
+  const normalized = normalizeWhatsAppInbound(message ?? {})
+  const text = normalized.content
   const from = String(message?.from ?? "")
   if (!message?.id || !from || !text) return NextResponse.json({ success: true, ignored: true })
 
@@ -88,7 +94,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ co
     externalMessageId: `whatsapp:${message.id}`,
     content: text,
     customerName: contact?.profile?.name ?? null,
-    providerPayload: { message_id: message.id, phone_number_id: change?.metadata?.phone_number_id },
+    providerPayload: {
+      message_id: message.id,
+      phone_number_id: change?.metadata?.phone_number_id,
+      metadata: normalized.metadata,
+    },
   })
 
   if (result.reply && result.outboundMessageId) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
-import { requireString, runInternalHandler } from "@/lib/internal/request"
+import { internalError, requireString, runInternalHandler } from "@/lib/internal/request"
 import { handleRuntimeInbound } from "@/lib/channels/runtime"
 
 export async function POST(request: NextRequest) {
@@ -12,8 +12,11 @@ export async function POST(request: NextRequest) {
     const externalMessageId = String(json.external_message_id ?? requestId)
     const externalThreadId = String(json.external_thread_id ?? json.conversation_id ?? externalCustomerId)
 
+    const tenant = await prisma.tenant.findFirst({ where: { id: tenantId, enabled: true, deletedAt: null } })
+    if (!tenant) return internalError("invalid_tenant", 404, requestId)
+
     const channel = await prisma.channelConnection.findFirst({ where: { id: channelConnectionId, tenantId, deletedAt: null } })
-    if (!channel) return NextResponse.json({ success: false, request_id: requestId, error: "channel_not_found" }, { status: 404 })
+    if (!channel) return internalError("channel_not_found", 404, requestId)
 
     const result = await handleRuntimeInbound({
       requestId,

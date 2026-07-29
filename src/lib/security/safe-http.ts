@@ -37,9 +37,11 @@ export async function safeJsonFetch(rawUrl: string, init: RequestInit & { timeou
   const url = await assertSafeHttpUrl(rawUrl, init.allowedDomains ?? [])
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), init.timeoutMs ?? 5000)
+  const maxResponseBytes = 256 * 1024
   try {
     const response = await fetch(url, { ...init, signal: controller.signal, redirect: "error" })
     const text = await response.text()
+    if (Buffer.byteLength(text, "utf8") > maxResponseBytes) throw new Error("action_response_too_large")
     return {
       ok: response.ok,
       status: response.status,

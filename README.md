@@ -10,8 +10,8 @@ The product is built for small teams that need AI automation without losing cont
 - Tenant-scoped businesses, assistant configuration, knowledge sources, catalog data, channel setup, inbox, handoffs, actions, follow-ups, analytics, audit logs, and system health.
 - Knowledge/RAG flow for manual text, files, chunking, embeddings, retrieval, and grounded response generation.
 - Telegram, Web Chat, and WhatsApp software paths with encrypted credential storage and webhook contracts.
-- n8n v4 runtime workflow contract with internal HMAC signing.
-- RBAC, tenant isolation checks, CSRF protection, rate limiting, SSRF-aware outbound action controls, audit logging, and secret redaction discipline.
+- n8n v4 runtime workflow contract with internal HMAC signing and structured failure normalization.
+- RBAC, tenant isolation checks, CSRF protection, rate limiting, SSRF-aware outbound action controls, bounded connector responses, audit logging, and secret redaction discipline.
 
 ## Architecture
 
@@ -99,6 +99,8 @@ Required provider-live values are issued by the relevant provider. Mocked softwa
 ## n8n
 
 Workflow exports live in `n8n/`. The v4 runtime workflow calls protected internal APIs using HMAC headers and must not contain hardcoded tenant IDs, tokens, or provider secrets.
+
+The reusable signed matrix harness is `scripts/n8n-v4-signed-matrix.mjs`. It requires QA tenant/channel environment values and prints sanitized pass/fail JSON only.
 
 ## Testing
 

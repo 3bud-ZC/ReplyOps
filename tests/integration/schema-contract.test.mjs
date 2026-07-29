@@ -25,10 +25,13 @@ test("schema contains tenant settings and HMAC key lifecycle fields", async () =
 
 test("internal API route helper enforces nonce and structured errors", async () => {
   const helper = await readFile(path.join(process.cwd(), "src", "lib", "internal", "request.ts"), "utf8")
+  const errorContract = await readFile(path.join(process.cwd(), "src", "lib", "internal", "error-contract.ts"), "utf8")
 
   for (const token of ["verifyStoredInternalRequest", "persistInternalNonce", "replayed_nonce", "request_id"]) {
-    assert.match(helper, new RegExp(token))
+    assert.match(`${helper}\n${errorContract}`, new RegExp(token))
   }
+  assert.match(errorContract, /INVALID_TENANT/)
+  assert.match(errorContract, /retryable/)
 })
 
 test("schema contains owner session revocation field", async () => {

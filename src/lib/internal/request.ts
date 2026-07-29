@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { randomUUID } from "crypto"
 import { persistInternalNonce, verifyStoredInternalRequest } from "@/lib/internal/hmac"
+import { normalizeReplyOpsError } from "@/lib/internal/error-contract"
 
 export type InternalContext = {
   bodyText: string
@@ -9,7 +10,7 @@ export type InternalContext = {
 }
 
 export function internalError(error: string, status: number, requestId: string = randomUUID()) {
-  return NextResponse.json({ success: false, request_id: requestId, error }, { status })
+  return NextResponse.json(normalizeReplyOpsError(error, { requestId, status }), { status })
 }
 
 export async function verifyInternalJson(
